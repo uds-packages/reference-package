@@ -1,24 +1,20 @@
 # UDS Package Reference Package
 
-This package is designed to be deployed on [UDS Core](https://github.com/defenseunicorns/uds-core) and is based on the upstream [Reference Package](#TEMPLATE_CHART_REPO#) chart.
+This package is designed to serve as a reference of what a UDS Package may look like. This package is not intended to be *functional* and should only serve to show what the layout of a UDS Package can look like. 
 
-> INSERT HERE 1-2 sentence summary of what the application does.
+The following should be demonstrated within this UDS Package:
+- Dependencies Pulled into a UDS Bundle
+- Keycloak SSO Configuration
+- Prometheus Service Monitoring
+- Helm Overrides
+- UDS Config Chart Templates
+- Istio Virtual Service Creation
+- Network Policy Creation
+- Playwright UI Testing
 
 ## Pre-requisites
 
 The Reference Package Package expects to be deployed on top of [UDS Core](https://github.com/defenseunicorns/uds-core) with the dependencies listed below being configured prior to deployment.
-
-#### Dependency information
-
-Add any dependency information here
-
-## Flavors
-
-| Flavor | Description | Example Creation |
-| ------ | ----------- | ---------------- |
-| `upstream` | Uses upstream images within the package. | `zarf package create . -f upstream` |
-| `registry1` | Uses images from registry1.dso.mil within the package | `zarf package create . -f registry1` |
-| `unicorn` | Uses images from rapidfort within the package | `zarf package create . -f unicorn` |
 
 ## Releases
 
