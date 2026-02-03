@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2026 Defense Unicorns
+ SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+-->
+
+<html>
+
+<head>
+    <title>Reference Package</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* User Header Styles */
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .user-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .logout-btn {
+            background-color: transparent;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .logout-btn:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* Status Indicator Styles */
+        .status-bar {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .status-online {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-offline {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button.action-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button.action-btn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: #666;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .loading-spinner {
+            font-style: italic;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="user-header">
+            <div class="user-info">
+                Logged in as: <span id="username" class="user-name">Loading...</span>
+            </div>
+            <a href="/logout"><button class="logout-btn">Logout</button></a>
+        </div>
+
+        <h2>Reference Package</h2>
+
+        <div id="dbStatus" class="status-bar status-offline">Connecting to Database...</div>
+
+        <div id="controls">
+            <input type="text" id="key" placeholder="Key">
+            <input type="text" id="value" placeholder="Value">
+            <button id="setBtn" class="action-btn" onclick="setKV()" disabled>Set Value</button>
+            <button class="action-btn" style="background-color: #6c757d" onclick="loadKV()">Refresh</button>
+        </div>
+
+        <table id="kvTable">
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="2" class="loading-spinner">Waiting for database connection...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('dbStatus');
+        const setBtn = document.getElementById('setBtn');
+        const usernameEl = document.getElementById('username');
+
+        // Fetch user info on load
+        async function loadUser() {
+            try {
+                const res = await fetch('/whoami');
+                if (res.ok) {
+                    const data = await res.json();
+                    usernameEl.innerText = data.username;
+                    if (data.type === 'guest') {
+                        usernameEl.innerText += " (Guest Mode)";
+                    }
+                } else {
+                    usernameEl.innerText = "Unknown";
+                }
+            } catch (e) {
+                console.error("Failed to load user info", e);
+            }
+        }
+
+        async function setKV() {
+            const key = document.getElementById('key').value;
+            const value = document.getElementById('value').value;
+            if (!key || !value) return;
+
+            const params = new URLSearchParams();
+            params.append('key', key);
+            params.append('value', value);
+
+            try {
+                const response = await fetch('/set', { method: 'POST', body: params });
+                if (response.ok) {
+                    document.getElementById('key').value = '';
+                    document.getElementById('value').value = '';
+                    loadKV();
+                } else {
+                    const err = await response.text();
+                    alert("Error: " + err);
+                }
+            } catch (e) {
+                console.error("Failed to set KV", e);
+            }
+        }
+
+        async function loadKV() {
+            try {
+                const response = await fetch('/get-all');
+
+                if (response.status === 503) {
+                    statusEl.innerText = "⚠️ Database Offline (Retrying...)";
+                    statusEl.className = "status-bar status-offline";
+                    setBtn.disabled = true;
+                    return;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    statusEl.innerText = "Database Online";
+                    statusEl.className = "status-bar status-online";
+                    setBtn.disabled = false;
+
+                    const tbody = document.querySelector('#kvTable tbody');
+                    tbody.innerHTML = '';
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="2" style="color: #999; text-align: center;">No data found</td></tr>';
+                    } else {
+                        data.forEach(row => {
+                            tbody.innerHTML += `<tr><td><strong>${row.key}</strong></td><td>${row.value}</td></tr>`;
+                        });
+                    }
+                }
+            } catch (e) {
+                statusEl.innerText = "❌ Network Error";
+                statusEl.className = "status-bar status-offline";
+                console.error("Failed to load KV", e);
+            }
+        }
+
+        setInterval(() => {
+            if (setBtn.disabled) {
+                loadKV();
+            }
+        }, 3000);
+
+        window.onload = () => {
+            loadUser();
+            loadKV();
+        };
+    </script>
+</body>
+
+</html>

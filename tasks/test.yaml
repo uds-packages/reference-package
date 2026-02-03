@@ -1,0 +1,48 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+# yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/uds-cli/refs/heads/main/tasks.schema.json
+tasks:
+  - name: all
+    actions:
+      - task: health-check
+      - task: ingress
+      - task: ui
+
+  # Ensure application deploys successfully and becomes available
+  - name: health-check
+    actions:
+      - description: Reference Package Health Check
+        wait:
+          cluster:
+            kind: Deployment
+            name: reference-package
+            namespace: reference-package
+            condition: Available
+
+  - name: ingress
+    actions:
+      - description: Reference Package UI Status Check
+        maxRetries: 30
+        cmd: |
+          STATUS=$(curl -L -o /dev/null -s -w "%{http_code}\n" https://reference-package.uds.dev)
+          echo "Reference Package system status: ${STATUS}"
+          if [ "$STATUS" != "200" ]; then
+            sleep 10
+            exit 1
+          fi
+
+  - name: ui
+    description: Reference Package UI Checks
+    actions:
+      - cmd: |
+          docker run --rm \
+            --network=host \
+            --shm-size=1g \
+            --security-opt seccomp=unconfined \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            -e NPM_CONFIG_CACHE=/tmp/.npm \
+            -v "$(pwd)":/app -w /app \
+            mcr.microsoft.com/playwright:v1.57.0 \
+            bash -lc "npm ci && npx playwright test"
+        dir: tests

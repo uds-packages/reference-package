@@ -1,0 +1,13 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+tasks:
+  - name: all
+    actions:
+      - task: create-container-image
+
+  - name: create-container-image
+    description: Create the Container Image for the Reference Package
+    actions:
+      - cmd: docker buildx build -t reference-package:v0.1.0 --load .
+        dir: src/docker

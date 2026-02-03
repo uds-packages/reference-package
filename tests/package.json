@@ -1,0 +1,9 @@
+{
+  "name": "uds-package-reference-package",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@playwright/test": "1.57.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.4.5"
+  }
+}

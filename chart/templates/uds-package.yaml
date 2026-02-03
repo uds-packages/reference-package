@@ -1,0 +1,85 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+apiVersion: uds.dev/v1alpha1
+kind: Package
+metadata:
+  name: reference-package
+  namespace: {{ .Release.Namespace }}
+spec:
+  {{- if .Values.sso.enabled }}
+  sso:
+    - name: Reference Package Login
+      protocol: openid-connect
+      clientId: uds-reference-package
+      secretName: {{ .Values.sso.secretName }}
+      redirectUris:
+        - "https://reference-package.{{ .Values.domain }}/callback"
+        - "https://reference-package.uds.dev"
+      secretTemplate:
+        KEYCLOAK_URL: "https://sso.{{ .Values.domain }}/realms/uds"
+        KEYCLOAK_CLIENT_ID: "clientField(clientId)"
+        KEYCLOAK_CLIENT_SECRET: "clientField(secret)"
+        APP_CALLBACK_URL: "clientField(redirectUris)[0]"
+  {{- end }}
+  monitor:
+    - selector:
+        app: reference-package
+      targetPort: 8080
+      portName: http
+      path: /metrics
+      kind: ServiceMonitor
+      description: Metrics scraping for Reference Package
+
+  network:
+    serviceMesh:
+      mode: ambient
+    expose:
+      - service: reference-package
+        selector:
+          app: reference-package
+        gateway: tenant
+        host: reference-package
+        port: 8080
+    allow:
+      - direction: Ingress
+        remoteGenerated: IntraNamespace
+
+      - direction: Egress
+        remoteGenerated: IntraNamespace
+
+      - direction: Egress
+        selector:
+          app: reference-package
+        {{- if .Values.postgres.internal }}
+        remoteNamespace: {{ .Values.postgres.namespace | quote }}
+        remoteSelector:
+          {{ .Values.postgres.selector | toYaml | nindent 10 }}
+        port: {{ .Values.postgres.port }}
+        {{- else }}
+        remoteGenerated: Anywhere
+        {{- end }}
+        description: "Reference Package Postgres"
+
+      - direction: Egress
+        remoteNamespace: keycloak
+        remoteSelector:
+          app.kubernetes.io/name: keycloak
+        selector:
+          app: reference-package
+        port: 8080
+        description: "SSO Internal"
+
+      - direction: Egress
+        remoteNamespace: istio-tenant-gateway
+        remoteSelector:
+          app: tenant-ingressgateway
+        selector:
+          app: reference-package
+        port: 443
+        description: "SSO External"
+
+      # Custom rules for unanticipated scenarios
+      {{- with .Values.additionalNetworkAllow }}
+      {{ toYaml . | nindent 6 }}
+      {{- end }}

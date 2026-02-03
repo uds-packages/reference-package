@@ -1,0 +1,50 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+kind: UDSBundle
+metadata:
+  name: reference-package-test
+  description: A UDS bundle for deploying Reference Package and its dependencies on a development cluster
+  version: dev
+
+packages:
+  - name: postgres-operator
+    repository: ghcr.io/uds-packages/postgres-operator
+    ref: 1.14.0-uds.13-upstream
+    overrides:
+      postgres-operator:
+        uds-postgres-config:
+          values:
+            - path: postgresql
+              value:
+                enabled: true  # Set to false to not create the PostgreSQL resource
+                teamId: "uds"
+                volume:
+                  size: "10Gi"
+                numberOfInstances: 2
+                users:
+                  reference-package.reference-package: []  # database owner
+                databases:
+                  reference: reference-package.reference-package
+                version: "15"
+                ingress:
+                  - remoteGenerated: Anywhere
+
+  - name: reference-package
+    path: ../
+    ref: dev
+    overrides:
+      reference-package:
+        reference-package:
+          values:
+            - path: database
+              value:
+                secretName: "reference-package-postgres"
+                secretKey: "PASSWORD"
+            - path: sso
+              value:
+                enabled: true
+                secretName: reference-package-sso
+            - path: monitoring
+              value:
+                enabled: true

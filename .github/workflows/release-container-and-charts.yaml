@@ -1,0 +1,90 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+name: Release Container & Charts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/container-and-chart/**"
+
+# Permissions for the GITHUB_TOKEN used by the workflow.
+permissions:
+  contents: read # Allows reading the content of the repository.
+  packages: read # Allows reading the content of the repository's packages.
+  id-token: write
+
+jobs:
+  publish:
+    permissions:
+      contents: write # Allows writing the content of the repository.
+      packages: write # Allows writing the content of the repository's packages.
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install UDS CLI
+        uses: defenseunicorns/setup-uds@ab842abcad1f7a3305c2538e3dd1950d0daacfa5 # v1.0.1
+        with:
+          # renovate: datasource=github-tags depName=defenseunicorns/uds-cli versioning=semver
+          version: v0.27.21
+
+      - name: Install ORAS CLI
+        if: ${{ inputs.publish-repo }}
+        uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6 # v1.2.4
+        with:
+          # renovate: datasource=github-tags depName=oras-project/oras versioning=semver
+          version: 1.3.0
+
+      - name: Install Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        with:
+          # renovate: datasource=github-tags depName=azure/azure-devops-helm-extension versioning=semver
+          version: v3.18.3
+
+      - name: Environment setup
+        run: |
+          echo "MARU_AUTH=\"{\"raw.githubusercontent.com\": \"${{ secrets.GITHUB_TOKEN }}\"}\"" >> "GITHUB_ENV"
+          uds run actions:setup-environment \
+          --set REGISTRY1_USERNAME="${{ secrets.IRON_BANK_ROBOT_USERNAME }}" \
+          --set REGISTRY1_PASSWORD="${{ secrets.IRON_BANK_ROBOT_PASSWORD }}" \
+          --set GH_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+          --set RAPIDFORT_USERNAME="${{ secrets.RAPIDFORT_USERNAME }}" \
+          --set RAPIDFORT_PASSWORD="${{ secrets.RAPIDFORT_PASSWORD }}"
+        shell: bash
+
+      - name: Get Container Version
+        id: get_version
+        run: |
+          VERSION=$(cat .github/container-and-chart/docker/version.txt | tr -d '[:space:]')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build and Push Container Image
+        run: |
+          CONTAINER_PATH=".github/container-and-chart/docker"
+          IMAGE_ID=ghcr.io/uds-pacakges/reference-package/container
+          VERSION=latest
+          SHA_TAG=sha-$(echo ${{ github.sha }} | head -c 7)
+
+          docker buildx build \
+            --push \
+            --platform linux/arm64/v8,linux/amd64 \
+            --tag $IMAGE_ID:${{ env.VERSION }} \
+            --tag $IMAGE_ID:latest \
+            --file $CONTAINER_PATH/Dockerfile \
+            .github/container-and-chart/docker
+
+      - name: Build and Push Helm Chart
+        run: |
+          CHART_PATH=".github/container-and-chart/helm/chart"
+          REGISTRY="ghcr.io/uds-pacakges/reference-package/helm"
+
+          helm package $CHART_PATH --destination ./dist
+
+          PKG_NAME=$(ls ./dist/*.tgz)
+          echo "Pushing $PKG_NAME..."
+          helm push "$PKG_NAME" oci://$REGISTRY

@@ -1,0 +1,29 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+domain: "###ZARF_VAR_DOMAIN###"
+
+sso:
+  enabled: true
+  secretName: reference-package-sso
+
+postgres:
+  username: "reference"
+  # Note: Specifying password as anything other than "" will not use the existingSecret
+  password: ""
+  existingSecret:
+    name: "reference-package.reference-package.pg-cluster.credentials.postgresql.acid.zalan.do"
+    passwordKey: password
+    usernameKey: username
+  host: "pg-cluster.postgres.svc.cluster.local"
+  dbName: "reference"
+  # Example: "?connect_timeout=10&sslmode=disable"
+  connectionOptions: "?sslmode=disable"
+  # Set to false to use external postgres
+  internal: true
+  selector:
+    cluster-name: pg-cluster
+  namespace: postgres
+  port: 5432
+
+additionalNetworkAllow: []
