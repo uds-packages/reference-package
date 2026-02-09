@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - ".github/container-and-chart/**"
+      - ".github/workflows/release-container-and-charts.yaml"
 
 # Permissions for the GITHUB_TOKEN used by the workflow.
 permissions:
@@ -68,7 +69,7 @@ jobs:
         run: |
           CONTAINER_PATH=".github/container-and-chart/docker"
           IMAGE_ID=ghcr.io/uds-pacakges/reference-package/container
-          VERSION=latest
+
           SHA_TAG=sha-$(echo ${{ github.sha }} | head -c 7)
 
           docker buildx build \
