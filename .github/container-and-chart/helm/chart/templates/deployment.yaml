@@ -15,13 +15,19 @@ spec:
       labels:
         app: reference-package
     spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: reference-package
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: "{{ .Values.image.pullPolicy }}"
           ports:
             - containerPort: 8080
           env:
+            - name: DB_LOG_LEVEL
+              value: {{ .Values.logging.dbLevel | default "info" | quote }}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:

@@ -11,9 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url" // <--- Added this import
+	"net/url"
 	"os"
-	"strings" // <--- Added this for safer URL parsing
+	"strings"
 	"sync"
 	"time"
 
@@ -200,6 +200,12 @@ func main() {
 		key := r.FormValue("key")
 		val := r.FormValue("value")
 
+		// --- DB LOGGING START ---
+		if os.Getenv("DB_LOG_LEVEL") == "debug" {
+			fmt.Printf("[DB-WRITE] Executing: INSERT INTO kv_store (key, value) VALUES ('%s', '%s') ON CONFLICT UPDATE\n", key, val)
+		}
+		// --- DB LOGGING END ---
+
 		_, err := dbConn.Exec(r.Context(), `
             INSERT INTO kv_store (key, value) VALUES ($1, $2)
             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
@@ -207,6 +213,9 @@ func main() {
 
 		if err != nil {
 			trackRequest("/set", "500")
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[DB-ERROR] Write failed: %v\n", err)
+			}
 			http.Error(w, "DB Error: "+err.Error(), 500)
 			return
 		}
@@ -228,9 +237,18 @@ func main() {
 			return
 		}
 
+		// --- DB LOGGING START ---
+		if os.Getenv("DB_LOG_LEVEL") == "debug" {
+			fmt.Println("[DB-READ] Executing: SELECT key, value FROM kv_store ORDER BY key ASC")
+		}
+		// --- DB LOGGING END ---
+
 		rows, err := dbConn.Query(r.Context(), "SELECT key, value FROM kv_store ORDER BY key ASC")
 		if err != nil {
 			trackRequest("/get-all", "500")
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[DB-ERROR] Read failed: %v\n", err)
+			}
 			http.Error(w, "Query failed", 500)
 			return
 		}
@@ -285,24 +303,24 @@ func serveApp(w http.ResponseWriter) {
 func serveLogin(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprint(w, `
-		<html>
-		<body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; margin-top: 50px; background-color: #f9f9f9;">
-			<div style="max-width: 400px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-				<h2 style="color: #333;">Authentication Required</h2>
-				<p style="color: #666; margin-bottom: 30px;">Welcome to the Reference Package</p>
-				
-				<div style="display: flex; flex-direction: column; gap: 15px;">
-					<a href="/login" style="background: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
-						Login with SSO
-					</a>
-					<a href="/login-guest" style="background: #6c757d; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
-						Login As Guest
-					</a>
-				</div>
-			</div>
-		</body>
-		</html>
-	`)
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; margin-top: 50px; background-color: #f9f9f9;">
+            <div style="max-width: 400px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <h2 style="color: #333;">Authentication Required</h2>
+                <p style="color: #666; margin-bottom: 30px;">Welcome to the Reference Package</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <a href="/login" style="background: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
+                        Login with SSO
+                    </a>
+                    <a href="/login-guest" style="background: #6c757d; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
+                        Login As Guest
+                    </a>
+                </div>
+            </div>
+        </body>
+        </html>
+    `)
 }
 
 func protect(next http.HandlerFunc) http.HandlerFunc {

@@ -10,3 +10,6 @@ service:
   type: ClusterIP
   port: 80
   targetPort: 8080
+
+logging:
+  dbLevel: "info"  # error, warn, info, debug

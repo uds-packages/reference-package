@@ -10,8 +10,6 @@ on:
       - zarf.yaml
       - releaser.yaml
       - .release-please-manifest.json
-    paths-ignore:
-      - ".github/container-and-chart/**"
 
 jobs:
   scan:

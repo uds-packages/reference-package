@@ -28,7 +28,7 @@ packages:
                   reference: reference-package.reference-package
                 version: "15"
                 ingress:
-                  - remoteGenerated: Anywhere
+                  - remoteNamespace: reference-package
 
   - name: reference-package
     path: ../
