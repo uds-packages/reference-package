@@ -68,7 +68,7 @@ jobs:
       - name: Build and Push Container Image
         run: |
           CONTAINER_PATH=".github/container-and-chart/docker"
-          IMAGE_ID=ghcr.io/uds-pacakges/reference-package/container
+          IMAGE_ID=ghcr.io/uds-packages/reference-package/container
 
           SHA_TAG=sha-$(echo ${{ github.sha }} | head -c 7)
 
@@ -82,7 +82,7 @@ jobs:
       - name: Build and Push Helm Chart
         run: |
           CHART_PATH=".github/container-and-chart/helm/chart"
-          REGISTRY="ghcr.io/uds-pacakges/reference-package/helm"
+          REGISTRY="ghcr.io/uds-packages/reference-package/helm"
 
           helm package $CHART_PATH --destination ./dist
 
