@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   publish:
+    runs-on: appstore-4-core-amd64
     permissions:
       contents: write # Allows writing the content of the repository.
       packages: write # Allows writing the content of the repository's packages.
