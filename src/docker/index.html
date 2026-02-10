@@ -98,6 +98,21 @@
             font-weight: bold;
         }
 
+        button.delete-btn {
+            background-color: transparent;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.delete-btn:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
@@ -159,11 +174,12 @@
                 <tr>
                     <th>Key</th>
                     <th>Value</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td colspan="2" class="loading-spinner">Waiting for database connection...</td>
+                    <td colspan="3" class="loading-spinner">Waiting for database connection...</td>
                 </tr>
             </tbody>
         </table>
@@ -237,10 +253,11 @@
                     tbody.innerHTML = '';
 
                     if (!data || data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="2" style="color: #999; text-align: center;">No data found</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="3" style="color: #999; text-align: center;">No data found</td></tr>';
                     } else {
                         data.forEach(row => {
-                            tbody.innerHTML += `<tr><td><strong>${row.key}</strong></td><td>${row.value}</td></tr>`;
+                            const encKey = encodeURIComponent(row.key);
+                            tbody.innerHTML += `<tr><td><strong>${row.key}</strong></td><td>${row.value}</td><td><button class="delete-btn" onclick="deleteKV(decodeURIComponent('${encKey}'))">Delete</button></td></tr>`;
                         });
                     }
                 }
@@ -248,6 +265,23 @@
                 statusEl.innerText = "❌ Network Error";
                 statusEl.className = "status-bar status-offline";
                 console.error("Failed to load KV", e);
+            }
+        }
+
+        async function deleteKV(key) {
+            const params = new URLSearchParams();
+            params.append('key', key);
+
+            try {
+                const response = await fetch('/delete', { method: 'POST', body: params });
+                if (response.ok) {
+                    loadKV();
+                } else {
+                    const err = await response.text();
+                    alert('Error: ' + err);
+                }
+            } catch (e) {
+                console.error('Failed to delete KV', e);
             }
         }
 

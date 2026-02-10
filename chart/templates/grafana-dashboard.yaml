@@ -1,0 +1,13 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-reference-app-grafana-dashboard
+  labels:
+    app.kubernetes.io/name: reference-package
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    grafana_dashboard: "1"
+data:
+  reference-app-dashboard.json: |-
+{{ .Files.Get "grafana/dashboards/reference-app-dashboard.json" | indent 4 }}
+{{- end }}
