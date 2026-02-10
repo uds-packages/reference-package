@@ -18,10 +18,10 @@ podSecurityContext:
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   allowPrivilegeEscalation: false
 
 logging:
-  dbLevel: "debug"  # error, warn, info, debug
+  dbLevel: "debug" # error, warn, info, debug
