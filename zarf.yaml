@@ -15,7 +15,7 @@ variables:
 components:
   - name: reference-package
     required: true
-    description: "Deploy Reference Package"
+    description: "Deploy Upstream Reference Package"
     import:
       path: common
     only:
@@ -24,5 +24,19 @@ components:
       - name: reference-package
         valuesFiles:
           - values/upstream-values.yaml
+    images:
+      - reference-package:v0.1.0
+
+  - name: reference-package
+    required: true
+    description: "Deploy Unicorn Reference Package"
+    import:
+      path: common
+    only:
+      flavor: unicorn
+    charts:
+      - name: reference-package
+        valuesFiles:
+          - values/unicorn-values.yaml
     images:
       - reference-package:v0.1.0
