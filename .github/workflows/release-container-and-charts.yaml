@@ -68,7 +68,7 @@ jobs:
       - name: Build and Push Container Image
         run: |
           CONTAINER_PATH=".github/container-and-chart/docker"
-          IMAGE_ID=ghcr.io/uds-packages/reference-package/container
+          IMAGE_ID=ghcr.io/uds-packages/reference-package/container/reference-package
 
           SHA_TAG=sha-$(echo ${{ github.sha }} | head -c 7)
 
@@ -82,13 +82,11 @@ jobs:
       - name: Build and Push Helm Chart
         run: |
           CHART_PATH=".github/container-and-chart/helm/chart"
-          REGISTRY="ghcr.io/uds-packages/reference-package"
+          REGISTRY="ghcr.io/uds-packages/reference-package/helm"
 
           helm package $CHART_PATH --destination ./dist --app-version ${{ env.VERSION }}
 
-          # Rename the package to 'helm' so Helm pushes to ghcr.io/uds-packages/reference-package/helm
-          mv ./dist/reference-package-*.tgz ./dist/helm-${{ env.VERSION }}.tgz
+          PKG_NAME=$(ls ./dist/*.tgz | head -n 1)
 
-          PKG_NAME="./dist/helm-${{ env.VERSION }}.tgz"
           echo "Pushing $PKG_NAME..."
           helm push "$PKG_NAME" oci://$REGISTRY
