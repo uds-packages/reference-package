@@ -15,7 +15,7 @@ spec:
       secretName: {{ .Values.sso.secretName }}
       redirectUris:
         - "https://reference-package.{{ .Values.domain }}/callback"
-        - "https://reference-package.uds.dev"
+        - "https://reference-package.{{ .Values.domain }}"
       secretTemplate:
         KEYCLOAK_URL: "https://sso.{{ .Values.domain }}/realms/uds"
         KEYCLOAK_CLIENT_ID: "clientField(clientId)"
