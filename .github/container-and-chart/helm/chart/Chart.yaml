@@ -3,7 +3,7 @@
 
 apiVersion: v2
 name: reference-package
-description: A Helm chart for Kubernetes
+description: uds-reference-package-config
 
 # A chart can be either an 'application' or a 'library' chart.
 #
