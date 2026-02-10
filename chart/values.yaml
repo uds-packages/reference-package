@@ -27,3 +27,6 @@ postgres:
   port: 5432
 
 additionalNetworkAllow: []
+
+monitoring:
+  enabled: true

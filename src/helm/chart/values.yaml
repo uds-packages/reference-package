@@ -12,4 +12,4 @@ service:
   targetPort: 8080
 
 logging:
-  dbLevel: "info"  # error, warn, info, debug
+  dbLevel: "info" # error, warn, info, debug

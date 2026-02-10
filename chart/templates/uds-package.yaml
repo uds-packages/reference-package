@@ -15,12 +15,12 @@ spec:
       secretName: {{ .Values.sso.secretName }}
       redirectUris:
         - "https://reference-package.{{ .Values.domain }}/callback"
-        - "https://reference-package.uds.dev"
+        - "https://reference-package.{{ .Values.domain }}"
       secretTemplate:
         KEYCLOAK_URL: "https://sso.{{ .Values.domain }}/realms/uds"
         KEYCLOAK_CLIENT_ID: "clientField(clientId)"
         KEYCLOAK_CLIENT_SECRET: "clientField(secret)"
-        APP_CALLBACK_URL: "clientField(redirectUris)[0]"
+        APP_CALLBACK_URL: "https://reference-package.{{ .Values.domain }}/callback"
   {{- end }}
   monitor:
     - selector:
