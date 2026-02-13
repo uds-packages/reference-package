@@ -54,6 +54,10 @@ var (
 		Name: "app_database_connected",
 		Help: "Binary status of database connection (1 = connected, 0 = disconnected)",
 	})
+	kvCountMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "reference_package_kv_count",
+		Help: "Current number of key/value pairs stored in kv_store",
+	})
 	httpRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "app_http_requests_total",
 		Help: "Total number of HTTP requests by path and status",
@@ -87,6 +91,10 @@ func main() {
 				dbConn = conn
 				dbMu.Unlock()
 				dbConnectedMetric.Set(1)
+				// Initialize KV count metric from DB
+				if err := updateKVCount(context.Background(), conn); err != nil {
+					fmt.Printf("Failed to initialize kv count metric: %v\n", err)
+				}
 				break
 			}
 			fmt.Printf("Postgres not available yet, retrying in 5s... (%v)\n", err)
@@ -210,7 +218,6 @@ func main() {
             INSERT INTO kv_store (key, value) VALUES ($1, $2)
             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
 			key, val)
-
 		if err != nil {
 			trackRequest("/set", "500")
 			if os.Getenv("DB_LOG_LEVEL") == "debug" {
@@ -221,6 +228,64 @@ func main() {
 		}
 
 		trackRequest("/set", "200")
+		// Refresh kv count metric after successful write. Best-effort only.
+		if err := refreshKVCount(r.Context()); err != nil {
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[METRICS] Failed to refresh kv count: %v\n", err)
+			}
+		}
+		fmt.Fprint(w, "Success")
+	}))
+
+	// API: Delete Value
+	http.HandleFunc("/delete", protect(func(w http.ResponseWriter, r *http.Request) {
+		dbMu.RLock()
+		defer dbMu.RUnlock()
+
+		if dbConn == nil {
+			trackRequest("/delete", "503")
+			http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		key := r.FormValue("key")
+		if key == "" {
+			trackRequest("/delete", "400")
+			http.Error(w, "Missing key", http.StatusBadRequest)
+			return
+		}
+
+		// --- DB LOGGING START ---
+		if os.Getenv("DB_LOG_LEVEL") == "debug" {
+			fmt.Printf("[DB-WRITE] Executing: DELETE FROM kv_store WHERE key = '%s'\n", key)
+		}
+		// --- DB LOGGING END ---
+
+		result, err := dbConn.Exec(r.Context(), "DELETE FROM kv_store WHERE key = $1", key)
+		if err != nil {
+			trackRequest("/delete", "500")
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[DB-ERROR] Delete failed: %v\n", err)
+			}
+			http.Error(w, "DB Error: "+err.Error(), 500)
+			return
+		}
+
+		// If no rows affected, return 404
+		if result.RowsAffected() == 0 {
+			trackRequest("/delete", "404")
+			http.Error(w, "Key not found", http.StatusNotFound)
+			return
+		}
+
+		trackRequest("/delete", "200")
+		// Refresh kv count metric after successful delete. Best-effort only.
+		if err := refreshKVCount(r.Context()); err != nil {
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[METRICS] Failed to refresh kv count: %v\n", err)
+			}
+		}
+
 		fmt.Fprint(w, "Success")
 	}))
 
@@ -276,6 +341,28 @@ func trackRequest(path, status string) {
 	if os.Getenv("MONITORING_ENABLED") == "true" {
 		httpRequestsTotal.WithLabelValues(path, status).Inc()
 	}
+}
+
+// updateKVCount queries the provided connection for the number of rows in kv_store
+// and sets the kvCountMetric accordingly.
+func updateKVCount(ctx context.Context, conn *pgx.Conn) error {
+	var count int64
+	row := conn.QueryRow(ctx, "SELECT COUNT(*) FROM kv_store")
+	if err := row.Scan(&count); err != nil {
+		return err
+	}
+	kvCountMetric.Set(float64(count))
+	return nil
+}
+
+// refreshKVCount is a convenience wrapper that uses the global dbConn.
+func refreshKVCount(ctx context.Context) error {
+	dbMu.RLock()
+	defer dbMu.RUnlock()
+	if dbConn == nil {
+		return fmt.Errorf("db not connected")
+	}
+	return updateKVCount(ctx, dbConn)
 }
 
 func initSSO(ctx context.Context) error {

@@ -86,7 +86,7 @@ jobs:
 
           helm package $CHART_PATH --destination ./dist --app-version ${{ env.VERSION }}
 
-          PKG_NAME=$(ls ./dist/*.tgz | head -n 1)
+          PKG_NAME=$(find ./dist -maxdepth 1 -name "*.tgz" -print -quit)
 
           echo "Pushing $PKG_NAME..."
           helm push "$PKG_NAME" oci://$REGISTRY
