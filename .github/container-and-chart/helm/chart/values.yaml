@@ -3,7 +3,7 @@
 
 image:
   repository: reference-package
-  tag: latest
+  tag: v0.1.0
   pullPolicy: IfNotPresent
 
 service:
@@ -22,5 +22,5 @@ sso:
   enabled: false
   secretName: reference-package-sso
 
-monitoring: 
+monitoring:
   enabled: false

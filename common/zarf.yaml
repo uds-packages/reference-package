@@ -18,6 +18,6 @@ components:
       - name: reference-package
         namespace: reference-package
         version: 0.1.0
-        localPath: ../src/helm/chart
+        url: oci://ghcr.io/uds-packages/reference-package/helm/reference-package
         valuesFiles:
           - ../values/common-values.yaml
