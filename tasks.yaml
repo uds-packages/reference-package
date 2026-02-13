@@ -24,7 +24,6 @@ tasks:
   - name: create-dev-package
     description: Create the package
     actions:
-      # - task: dependencies:create-container-image
       - task: create:package
         with:
           options: "--skip-sbom"
@@ -64,9 +63,6 @@ tasks:
   - name: publish-package
     description: Build and publish the packages
     actions:
-      - description: Create the container image
-        task: dependencies:create-container-image
-
       - description: Create the package
         task: create:package
 
