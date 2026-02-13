@@ -13,3 +13,14 @@ service:
 
 logging:
   dbLevel: "info" # error, warn, info, debug
+
+database:
+  secretName: "reference-package-postgres"
+  secretKey: "PASSWORD"
+
+sso:
+  enabled: false
+  secretName: reference-package-sso
+
+monitoring: 
+  enabled: false
