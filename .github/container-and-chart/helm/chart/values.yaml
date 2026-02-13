@@ -22,5 +22,5 @@ sso:
   enabled: false
   secretName: reference-package-sso
 
-monitoring: 
+monitoring:
   enabled: false
