@@ -25,7 +25,7 @@ components:
         valuesFiles:
           - values/upstream-values.yaml
     images:
-      - reference-package:v0.1.0
+      - ghcr.io/uds-packages/reference-package/container/reference-package:v0.1.0
 
   - name: reference-package
     required: true
@@ -39,4 +39,4 @@ components:
         valuesFiles:
           - values/unicorn-values.yaml
     images:
-      - reference-package:v0.1.0
+      - ghcr.io/uds-packages/reference-package/container/reference-package:v0.1.0

@@ -3,7 +3,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/uds-cli/refs/heads/main/tasks.schema.json
 includes:
   - test: ./tasks/test.yaml
-  - dependencies: ./tasks/dependencies.yaml
   - create: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/create.yaml
   - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/lint.yaml
   - pull: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/pull.yaml
@@ -12,7 +11,6 @@ includes:
   - actions: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/actions.yaml
   - badge: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/badge.yaml
   - upgrade: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/upgrade.yaml
-  - compliance: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/compliance.yaml
   - publish: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.23.0/tasks/publish.yaml
 
 tasks:
@@ -26,7 +24,7 @@ tasks:
   - name: create-dev-package
     description: Create the package
     actions:
-      - task: dependencies:create-container-image
+      # - task: dependencies:create-container-image
       - task: create:package
         with:
           options: "--skip-sbom"

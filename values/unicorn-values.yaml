@@ -2,6 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 image:
-  repository: reference-package
+  repository: ghcr.io/uds-packages/reference-package/container/reference-package
   tag: v0.1.0
   pullPolicy: Always
