@@ -65,6 +65,9 @@ jobs:
           VERSION=$(cat .github/container-and-chart/docker/version.txt | tr -d '[:space:]')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
       - name: Build and Push Container Image
         run: |
           CONTAINER_PATH=".github/container-and-chart/docker"
@@ -73,6 +76,7 @@ jobs:
           SHA_TAG=sha-$(echo ${{ github.sha }} | head -c 7)
 
           docker buildx build \
+            --platform linux/amd64,linux/arm64 \
             --push \
             --tag $IMAGE_ID:${{ env.VERSION }} \
             --tag $IMAGE_ID:latest \
