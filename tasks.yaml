@@ -17,7 +17,7 @@ tasks:
     description: Setup k3d cluster, deploy package
     actions:
       - task: create-dev-package
-      - task: setup:k3d-test-cluster
+      - task: setup:k3d-full-cluster
       - task: create-deploy-test-bundle
 
   - name: create-dev-package
