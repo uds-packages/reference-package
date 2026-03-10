@@ -15,7 +15,6 @@ This repository should aim to provide functional examples of the following:
 * **Networking & Security:** Istio Virtual Service and Network Policy creation.
 * **Testing:** Playwright UI testing.
 
----
 
 ## Prerequisites
 
@@ -27,16 +26,34 @@ This reference package is designed to be deployed on top of [UDS Core](https://g
 > [!TIP]
 > `k3d-core-demo` is set as the default k3d bundle if you run `uds run default` in the root directory.
 
-## Releases
-
-The released packages can be found in [ghcr](https://github.com/uds-packages/reference-package/pkgs/container/reference-package).
-
-## UDS Tasks (for local dev and CI)
+## Quick Start
+### UDS Tasks (for local dev and CI)
 
 *For local dev, this requires you install [uds-cli](https://github.com/defenseunicorns/uds-cli?tab=readme-ov-file#install)
 
 > [!TIP]
 > To get a list of tasks to run you can use `uds run --list`!
+### Deployment
+#### If you already have UDS Core installed
+
+This will create the package, create the test-bundle, then deploy in the k3d cluster.
+```bash
+uds run dev
+```
+
+#### If you do not have UDS Core installed
+
+This will stand up the k3d cluster, create the package, create the test-bundle, then deploy in the k3d cluster.
+```bash
+uds run default
+```
+#### Access the WebUI
+Once the app is deployed, it can be accessed in the web browser at https://reference-package.uds.dev
+
+## Releases
+
+The released packages can be found in [ghcr](https://github.com/uds-packages/reference-package/pkgs/container/reference-package).
+
 
 ## Contributing
 
