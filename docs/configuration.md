@@ -4,9 +4,7 @@ The Reference Package is configured using the [application's Helm chart](https:/
 
 ## Bundle Overrides
 
-When deploying this package via a `uds-bundle.yaml`, you will use the `overrides` section to pass your specific values down to the charts.
-
-Here is an example of what your bundle overrides should look like to configure the Database, SSO, and Monitoring:
+Use bundle overrides in `bundle/uds-bundle.yaml` to configure the Database, SSO, and Monitoring.
 
 ```yaml
 overrides:
@@ -33,7 +31,7 @@ overrides:
 
 The underlying Go application requires a database connection string provided via a Kubernetes secret.
 
-If you are using the `uds-package-postgres-operator` in your bundle, the `uds-reference-package-config` chart will create the secret, via the below values:
+If you are using the [uds-package-postgres-operator](https://github.com/uds-packages/postgres-operator) in your bundle, the `uds-reference-package-config` chart will create the secret, via the below values:
 
 ```yaml
 postgres:
@@ -68,4 +66,4 @@ Setting `monitoring.enabled: true` configures the package to expose metrics to P
 
 ## Package Custom Resources (CR)
 
-For further information regarding the UDS Package Custom Resource (CR), defined in the `chart/template/uds-package.yaml`, the full specification can be found in the [UDS Package CR Documentation](https://uds.defenseunicorns.com/reference/configuration/custom-resources/exemptions-v1alpha1-cr/).
+For further information regarding the UDS Package Custom Resource (CR), defined in the `chart/templates/uds-package.yaml`, the full specification can be found in the [UDS Package CR Documentation](https://uds.defenseunicorns.com/reference/configuration/custom-resources/exemptions-v1alpha1-cr/).

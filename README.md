@@ -2,7 +2,10 @@
 
 This repository serves as a practical, working example of a well-structured UDS Package.
 
-Inside the `.github` directory, you will find a fully runnable Go-based web application that reads and writes to a Postgres database. However, the application's specific features are secondary. **The primary purpose of this repository is to demonstrate UDS Package architecture, layout, and best practices.** This repository can be referenced alongside the [UDS Documentation](https://uds.defenseunicorns.com/), as a reference guide for building, configuring, and testing own UDS packages.
+Inside the `.github` directory, you will find a fully runnable Go-based web application that reads and writes to a Postgres database.  This repository can be referenced alongside the [UDS Documentation](https://uds.defenseunicorns.com/), as a reference guide for building, configuring, and testing own UDS packages.
+
+> [!NOTE]
+> **The primary purpose of this repository is to demonstrate UDS Package architecture, layout, and best practices. The application's specific features are secondary.**
 
 ## What This Demonstrates
 
@@ -20,8 +23,8 @@ This repository should aim to provide functional examples of the following:
 
 This reference package is designed to be deployed on top of [UDS Core](https://github.com/defenseunicorns/uds-core). Please ensure the following dependencies are configured prior to deployment:
 
-* **Postgres Database:** The Go application requires a Postgres instance. We recommend bringing this into your `uds-bundle` by using the `postgres-operator` UDS package.
-* **Monitoring** To successfully demonstrate the monitoring features, you will need to install the `k3d-core-demo` bundle rather than the `k3d-core-slim-dev` bundle.
+* **Postgres Database:** The Go application requires a Postgres instance. We recommend bringing this into your `bundle/uds-bundle` by using the `postgres-operator` UDS package.
+* **Monitoring:** To successfully demonstrate the monitoring features, you will need to install the `k3d-core-demo` bundle rather than the `k3d-core-slim-dev` bundle.
 
 > [!TIP]
 > `k3d-core-demo` is set as the default k3d bundle if you run `uds run default` in the root directory.
@@ -31,6 +34,7 @@ This reference package is designed to be deployed on top of [UDS Core](https://g
 
 *For local dev, this requires you install [uds-cli](https://github.com/defenseunicorns/uds-cli?tab=readme-ov-file#install)
 
+The UDS Tasks can be found in the `tasks.yaml`
 > [!TIP]
 > To get a list of tasks to run you can use `uds run --list`!
 ### Deployment
