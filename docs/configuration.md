@@ -31,7 +31,7 @@ overrides:
 
 The underlying Go application requires a database connection string provided via a Kubernetes secret.
 
-If you are using the [uds-package-postgres-operator](https://github.com/uds-packages/postgres-operator) in your bundle, the `uds-reference-package-config` chart will create the secret, via the below values:
+If you are using the [uds-package-postgres-operator](https://github.com/uds-packages/postgres-operator) in your bundle, the `uds-reference-package-config` chart (located in `./chart`) will create the secret, via the below values:
 
 ```yaml
 postgres:
