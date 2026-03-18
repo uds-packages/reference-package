@@ -41,6 +41,10 @@ spec:
         gateway: tenant
         host: reference-package
         port: 8080
+        uptime:
+          checks:
+            paths:
+              - /health
     allow:
       - direction: Ingress
         remoteGenerated: IntraNamespace
