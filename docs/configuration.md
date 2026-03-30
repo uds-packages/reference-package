@@ -58,12 +58,12 @@ postgres:
 
 Setting `sso.enabled: true` in the UDS config chart overrides tells the package to generate an SSO secret.
 
-This relies on the UDS Operator's built-in secret templating. You can read more about how this works in the [UDS SSO Templating Documentation](https://uds.defenseunicorns.com/reference/configuration/single-sign-on/sso-templating/).
+This relies on the UDS Operator's built-in secret templating. You can read more about how this works in the [Register and customize SSO clients](https://docs.defenseunicorns.com/core/how-to-guides/identity--authorization/register-and-customize-sso-clients/) guide.
 
 ### Monitoring
 
-Setting `monitoring.enabled: true` configures the package to expose metrics to Prometheus. More information can be found here: [Monitoring and Metrics](https://uds.defenseunicorns.com/reference/configuration/observability/monitoring-metrics/)
+Setting `monitoring.enabled: true` configures the package to expose metrics to Prometheus. More information can be found in the [Capture application metrics](https://docs.defenseunicorns.com/core/how-to-guides/monitoring--observability/capture-application-metrics/) guide.
 
 ## Package Custom Resources (CR)
 
-For further information regarding the UDS Package Custom Resource (CR), defined in the `chart/templates/uds-package.yaml`, the full specification can be found in the [UDS Package CR Documentation](https://uds.defenseunicorns.com/reference/configuration/custom-resources/exemptions-v1alpha1-cr/).
+For further information regarding the UDS Package Custom Resource (CR), defined in the `chart/templates/uds-package.yaml`, the full specification can be found in the [Packages CR](https://docs.defenseunicorns.com/core/reference/operator--crds/packages-v1alpha1-cr/).
