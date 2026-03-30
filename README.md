@@ -2,7 +2,7 @@
 
 This repository serves as a practical, working example of a well-structured UDS Package.
 
-Inside the `.github` directory, you will find a fully runnable Go-based web application that reads and writes to a Postgres database.  This repository can be referenced alongside the [UDS Documentation](https://uds.defenseunicorns.com/), as a reference guide for building, configuring, and testing own UDS packages.
+Inside the `.github` directory, you will find a fully runnable Go-based web application that reads and writes to a Postgres database.  This repository can be referenced alongside the [UDS Documentation](https://docs.defenseunicorns.com/), as a reference guide for building, configuring, and testing own UDS packages.
 
 > [!NOTE]
 > **The primary purpose of this repository is to demonstrate UDS Package architecture, layout, and best practices. The application's specific features are secondary.**
