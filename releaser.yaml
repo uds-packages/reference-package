@@ -4,7 +4,7 @@
 flavors:
   - name: upstream
     # renovate-uds: datasource=docker depName=ghcr.io/uds-packages/reference-package/container/reference-package
-    version: 0.1.0-uds.3
+    version: 0.1.1-uds.0
   - name: unicorn
     # renovate-uds: datasource=docker depName=ghcr.io/uds-packages/reference-package/container/reference-package
-    version: 0.1.0-uds.3
+    version: 0.1.1-uds.0
