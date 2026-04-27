@@ -10,7 +10,7 @@ metadata:
 packages:
   - name: postgres-operator
     repository: ghcr.io/uds-packages/postgres-operator
-    ref: 1.14.0-uds.13-upstream
+    ref: 1.15.1-uds.4-upstream
     overrides:
       postgres-operator:
         uds-postgres-config:

@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -46,7 +46,7 @@ var (
 	ssoEnabled   bool
 
 	// DB State
-	dbConn *pgx.Conn
+	dbPool *pgxpool.Pool
 	dbMu   sync.RWMutex
 
 	// Prometheus Metrics
@@ -76,30 +76,37 @@ func main() {
 			return
 		}
 
+		pool, err := pgxpool.New(context.Background(), connStr)
+		if err != nil {
+			fmt.Printf("Failed to create Postgres pool: %v\n", err)
+			dbConnectedMetric.Set(0)
+			return
+		}
+
 		for {
-			conn, err := pgx.Connect(context.Background(), connStr)
+			pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			err := pool.Ping(pingCtx)
+			cancel()
 			if err == nil {
 				fmt.Println("Successfully connected to Postgres!")
-
-				// Initialize table
-				_, err = conn.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, value TEXT)")
-				if err != nil {
-					fmt.Printf("Failed to initialize table: %v\n", err)
-				}
-
-				dbMu.Lock()
-				dbConn = conn
-				dbMu.Unlock()
-				dbConnectedMetric.Set(1)
-				// Initialize KV count metric from DB
-				if err := updateKVCount(context.Background(), conn); err != nil {
-					fmt.Printf("Failed to initialize kv count metric: %v\n", err)
-				}
 				break
 			}
 			fmt.Printf("Postgres not available yet, retrying in 5s... (%v)\n", err)
 			dbConnectedMetric.Set(0)
 			time.Sleep(5 * time.Second)
+		}
+
+		if _, err := pool.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, value TEXT)"); err != nil {
+			fmt.Printf("Failed to initialize table: %v\n", err)
+		}
+
+		dbMu.Lock()
+		dbPool = pool
+		dbMu.Unlock()
+		dbConnectedMetric.Set(1)
+
+		if err := updateKVCount(context.Background(), pool); err != nil {
+			fmt.Printf("Failed to initialize kv count metric: %v\n", err)
 		}
 	}()
 
@@ -199,7 +206,7 @@ func main() {
 		dbMu.RLock()
 		defer dbMu.RUnlock()
 
-		if dbConn == nil {
+		if dbPool == nil {
 			trackRequest("/set", "503")
 			http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
 			return
@@ -214,7 +221,7 @@ func main() {
 		}
 		// --- DB LOGGING END ---
 
-		_, err := dbConn.Exec(r.Context(), `
+		_, err := dbPool.Exec(r.Context(), `
             INSERT INTO kv_store (key, value) VALUES ($1, $2)
             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
 			key, val)
@@ -242,7 +249,7 @@ func main() {
 		dbMu.RLock()
 		defer dbMu.RUnlock()
 
-		if dbConn == nil {
+		if dbPool == nil {
 			trackRequest("/delete", "503")
 			http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
 			return
@@ -261,7 +268,7 @@ func main() {
 		}
 		// --- DB LOGGING END ---
 
-		result, err := dbConn.Exec(r.Context(), "DELETE FROM kv_store WHERE key = $1", key)
+		result, err := dbPool.Exec(r.Context(), "DELETE FROM kv_store WHERE key = $1", key)
 		if err != nil {
 			trackRequest("/delete", "500")
 			if os.Getenv("DB_LOG_LEVEL") == "debug" {
@@ -294,7 +301,7 @@ func main() {
 		dbMu.RLock()
 		defer dbMu.RUnlock()
 
-		if dbConn == nil {
+		if dbPool == nil {
 			trackRequest("/get-all", "503")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -308,7 +315,7 @@ func main() {
 		}
 		// --- DB LOGGING END ---
 
-		rows, err := dbConn.Query(r.Context(), "SELECT key, value FROM kv_store ORDER BY key ASC")
+		rows, err := dbPool.Query(r.Context(), "SELECT key, value FROM kv_store ORDER BY key ASC")
 		if err != nil {
 			trackRequest("/get-all", "500")
 			if os.Getenv("DB_LOG_LEVEL") == "debug" {
@@ -345,9 +352,9 @@ func trackRequest(path, status string) {
 
 // updateKVCount queries the provided connection for the number of rows in kv_store
 // and sets the kvCountMetric accordingly.
-func updateKVCount(ctx context.Context, conn *pgx.Conn) error {
+func updateKVCount(ctx context.Context, pool *pgxpool.Pool) error {
 	var count int64
-	row := conn.QueryRow(ctx, "SELECT COUNT(*) FROM kv_store")
+	row := pool.QueryRow(ctx, "SELECT COUNT(*) FROM kv_store")
 	if err := row.Scan(&count); err != nil {
 		return err
 	}
@@ -355,14 +362,14 @@ func updateKVCount(ctx context.Context, conn *pgx.Conn) error {
 	return nil
 }
 
-// refreshKVCount is a convenience wrapper that uses the global dbConn.
+// refreshKVCount is a convenience wrapper that uses the global dbPool.
 func refreshKVCount(ctx context.Context) error {
 	dbMu.RLock()
 	defer dbMu.RUnlock()
-	if dbConn == nil {
+	if dbPool == nil {
 		return fmt.Errorf("db not connected")
 	}
-	return updateKVCount(ctx, dbConn)
+	return updateKVCount(ctx, dbPool)
 }
 
 func initSSO(ctx context.Context) error {

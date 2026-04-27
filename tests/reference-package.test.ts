@@ -28,10 +28,14 @@ test("verify database connection and set key-value", async ({ page }) => {
   // Using locators by ID as defined in your index.html
   await page.locator("#key").fill(keyName);
   await page.locator("#value").fill(valueData);
-  await page.locator("#setBtn").click();
 
-  // 4. Verify Result
-  // The app automatically refreshes the table. We check if a row with our text exists.
+  await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().endsWith("/get-all") && r.request().method() === "GET" && r.ok(),
+    ),
+    page.locator("#setBtn").click(),
+  ]);
+
   const newRow = page.locator("tr", { hasText: keyName });
 
   await expect(newRow).toBeVisible();
