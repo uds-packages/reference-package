@@ -72,7 +72,7 @@ spec:
         selector:
           app: reference-package
         port: 8080
-        description: "SSO Internal"
+        description: "Keycloak OIDC backend (operator only generates for Authservice clients)"
 
       - direction: Egress
         remoteNamespace: istio-tenant-gateway
@@ -81,7 +81,7 @@ spec:
         selector:
           app: reference-package
         port: 443
-        description: "SSO External"
+        description: "Keycloak via tenant gateway for OIDC issuer (operator only generates for Authservice clients)"
 
       # Custom rules for unanticipated scenarios
       {{- with .Values.additionalNetworkAllow }}
