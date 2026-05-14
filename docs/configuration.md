@@ -54,7 +54,7 @@ postgres:
   port: 5432
 ```
 
-#### How the secret gets created
+#### Secrets creation
 
 The Zalando Postgres Operator uses a `{namespace}.{username}` format for the `users` key in its config. That namespace prefix determines **which namespace** the operator places the credentials secret in. Given the following bundle override on the `postgres-operator` package:
 
@@ -85,9 +85,6 @@ overrides:
             secretName: "reference-package-postgres"  # must match the secret created by the config chart
             secretKey: "PASSWORD"
 ```
-
-> [!IMPORTANT]
-> If `postgres.password` is set to anything other than `""`, the config chart skips the `existingSecret` lookup and uses the literal password value instead. The `existingSecret` path is only active when `password` is empty.
 
 For external databases (non-operator), set `postgres.password` directly and provide the `host`, `dbName`, and connection details for your database service.
 
