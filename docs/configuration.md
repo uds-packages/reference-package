@@ -4,9 +4,10 @@ The Reference Package is configured using the [application's Helm chart](https:/
 
 ## Bundle Overrides
 
-Use bundle overrides in `bundle/uds-bundle.yaml` to configure the Database, SSO, and Monitoring.
+Use bundle overrides to configure the Database, SSO, and Monitoring.
 
 ```yaml
+# bundle/uds-bundle.yaml
 overrides:
   reference-package:
     reference-package:
@@ -31,9 +32,10 @@ overrides:
 
 The underlying Go application requires a database connection string provided via a Kubernetes secret.
 
-If you are using the [uds-package-postgres-operator](https://github.com/uds-packages/postgres-operator) in your bundle, the `uds-reference-package-config` chart (located in `./chart`) will create the secret, via the below values:
+If you are using the [uds-package-postgres-operator](https://github.com/uds-packages/postgres-operator) in your bundle, the `uds-reference-package-config` chart will create the secret via the below values:
 
 ```yaml
+# chart/values.yaml
 postgres:
   username: "reference"
   # Note: Specifying password as anything other than "" will not use the existingSecret
@@ -59,6 +61,7 @@ postgres:
 The Zalando Postgres Operator uses a `{namespace}.{username}` format for the `users` key in its config. That namespace prefix determines **which namespace** the operator places the credentials secret in. Given the following bundle override on the `postgres-operator` package:
 
 ```yaml
+# bundle/uds-bundle.yaml
 overrides:
   postgres-operator:
     uds-postgres-config:
@@ -73,9 +76,10 @@ overrides:
 
 The operator creates a secret named `reference-package.reference-package.pg-cluster.credentials.postgresql.acid.zalan.do` in the `reference-package` namespace.
 
-`chart/templates/postgres-secret.yaml` then looks up that secret, extracts the credentials, and writes a `postgres://` connection string into `reference-package-postgres` in the same namespace. The application chart consumes it via the `database` bundle override:
+`chart/templates/postgres-secret.yaml` then looks up that secret, extracts the credentials, and writes a `postgres://` connection string into `reference-package-postgres` in the same namespace. The application chart consumes it via the `database` override:
 
 ```yaml
+# bundle/uds-bundle.yaml
 overrides:
   reference-package:
     reference-package:
