@@ -77,7 +77,7 @@ allow:
 
 ## External egress
 
-To reach a known external host, use `remoteHost`. Each host requires its own entry; wildcards are not supported.
+To reach a known external host, use `remoteHost`. Each host requires its own entry.
 
 ```yaml
 # chart/templates/uds-package.yaml
@@ -85,12 +85,10 @@ allow:
   - direction: Egress
     selector:
       app: reference-package
-    remoteHost: api.example.com        # exact hostname; wildcards are not supported
+    remoteHost: api.example.com        # exact hostname - wildcards are not supported
     port: 443
     description: "External API"
 ```
-
-`remoteProtocol` defaults to `TLS` when `remoteHost` is set. Use `HTTP` for plaintext egress.
 
 ## Internal vs. external dependency toggle
 
