@@ -18,7 +18,7 @@ spec:
       - service: reference-package
         selector:
           app: reference-package
-        gateway: tenant                    # tenant (end-user) or admin (platform-ops)
+        gateway: tenant                    
         host: reference-package            # resolves to reference-package.<domain>
         port: 8080
 
