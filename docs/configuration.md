@@ -88,6 +88,9 @@ overrides:
 
 For external databases (non-operator), set `postgres.password` directly and provide the `host`, `dbName`, and connection details for your database service.
 
+> [!NOTE]
+> Setting `postgres.internal` to `false` also changes the egress rule from a scoped namespace selector to unrestricted egress. See [Networking patterns](networking-patterns.md) for details.
+
 > [!IMPORTANT]
 > You can learn more about configuring the databases and operator within the [Postgres Operator docs](https://github.com/zalando/postgres-operator/tree/master/docs).
 
