@@ -24,7 +24,7 @@ tasks:
       - description: Reference Package UI Status Check
         maxRetries: 30
         cmd: |
-          STATUS=$(curl -L -o /dev/null -s -w "%{http_code}\n" https://reference-package.uds.dev)
+          STATUS=$(curl -L -o /dev/null -s -w "%{http_code}\n" https://blah.uds.dev)
           echo "Reference Package system status: ${STATUS}"
           if [ "$STATUS" != "200" ]; then
             sleep 10
