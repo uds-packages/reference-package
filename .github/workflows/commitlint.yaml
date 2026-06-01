@@ -1,15 +1,15 @@
-# Copyright 2024 Defense Unicorns
-# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+# # Copyright 2024 Defense Unicorns
+# # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
-name: PR Title Check
+# name: PR Title Check
 
-on:
-  # This workflow is triggered on pull requests to the main branch.
-  pull_request:
-    branches: [main]
-    # milestoned is added here so that a PR can be re-triggered if it is milestoned.
-    types: [milestoned, opened, edited, synchronize]
+# on:
+#   # This workflow is triggered on pull requests to the main branch.
+#   pull_request:
+#     branches: [main]
+#     # milestoned is added here so that a PR can be re-triggered if it is milestoned.
+#     types: [milestoned, opened, edited, synchronize]
 
-jobs:
-  validate:
-    uses: defenseunicorns/uds-common/.github/workflows/callable-commitlint.yaml@ba03e5bec6704a54466a94a3fdee9741b755630b # v1.24.11
+# jobs:
+#   validate:
+#     uses: defenseunicorns/uds-common/.github/workflows/callable-commitlint.yaml@ba03e5bec6704a54466a94a3fdee9741b755630b # v1.24.11

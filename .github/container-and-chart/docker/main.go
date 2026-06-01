@@ -136,6 +136,19 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		dbMu.RLock()
+		ready := dbPool != nil
+		dbMu.RUnlock()
+		if ready {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("DB not ready"))
+		}
+	})
+
 	// Main App Page
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if !ssoEnabled {

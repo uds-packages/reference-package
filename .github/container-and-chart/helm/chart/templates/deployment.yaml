@@ -25,6 +25,13 @@ spec:
           imagePullPolicy: "{{ .Values.image.pullPolicy }}"
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
           env:
             - name: DB_LOG_LEVEL
               value: {{ .Values.logging.dbLevel | default "info" | quote }}
