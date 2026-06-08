@@ -1,0 +1,19 @@
+# Copyright 2024-2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+# Pass-through for the required "verify-test" status check on PRs that update
+# container images and charts.
+
+name: Test
+
+on:
+  pull_request:
+    types: [milestoned, opened, reopened, synchronize]
+    paths:
+      - ".github/container-and-chart/**"
+
+jobs:
+  verify-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No UDS package changes — skipping full test suite."
