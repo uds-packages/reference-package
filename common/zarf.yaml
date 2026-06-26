@@ -1,4 +1,4 @@
-# Copyright 2024 Defense Unicorns
+# Copyright 2024-2026 Defense Unicorns
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 # yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/zarf/main/zarf.schema.json
@@ -15,9 +15,15 @@ components:
         namespace: reference-package
         version: 0.1.0
         localPath: ../chart
+        values:
+          - sourcePath: .domain
+            targetPath: .domain
       - name: reference-package
         namespace: reference-package
         version: 0.1.2
         url: oci://ghcr.io/uds-packages/reference-package/helm/reference-package
-        valuesFiles:
-          - ../values/common-values.yaml
+        values:
+          - sourcePath: "."
+            targetPath: "."
+            excludePaths:
+              - .domain

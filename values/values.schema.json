@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "database": {
+      "properties": {
+        "secretKey": {
+          "type": "string"
+        },
+        "secretName": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "domain": {
+      "description": "Base domain used for SSO redirect/callback URLs and the Keycloak issuer.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "image": {
+      "properties": {
+        "pullPolicy": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "logging": {
+      "properties": {
+        "dbLevel": {
+          "description": "Database log verbosity.",
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "monitoring": {
+      "properties": {
+        "enabled": {
+          "description": "Expose metrics to Prometheus and create the Grafana dashboard ConfigMap.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "type": "object"
+    },
+    "podSecurityContext": {
+      "properties": {
+        "fsGroup": {
+          "type": "integer"
+        },
+        "runAsGroup": {
+          "type": "integer"
+        },
+        "runAsUser": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "securityContext": {
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "properties": {
+            "drop": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "readOnlyRootFilesystem": {
+          "type": "boolean"
+        },
+        "runAsNonRoot": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "service": {
+      "properties": {
+        "port": {
+          "type": "integer"
+        },
+        "targetPort": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "sso": {
+      "properties": {
+        "enabled": {
+          "description": "Register the SSO client with Keycloak and wire credentials into the application.",
+          "type": "boolean"
+        },
+        "secretName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "domain",
+    "sso",
+    "monitoring"
+  ],
+  "type": "object"
+}
