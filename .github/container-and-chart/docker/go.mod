@@ -3,7 +3,7 @@ module reference-package
 go 1.25.6
 
 require (
-	github.com/coreos/go-oidc/v3 v3.19.0
+	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/prometheus/client_golang v1.23.2
 	golang.org/x/oauth2 v0.36.0
