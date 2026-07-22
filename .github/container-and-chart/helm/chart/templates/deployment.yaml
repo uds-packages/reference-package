@@ -33,6 +33,24 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.database.secretName }}
                   key: {{ .Values.database.secretKey }}
+            {{- if .Values.minio.enabled }}
+            - name: S3_ENDPOINT
+              value: {{ .Values.minio.endpoint | quote }}
+            - name: S3_BUCKET
+              value: {{ .Values.minio.bucket | quote }}
+            - name: S3_USE_SSL
+              value: {{ .Values.minio.useSSL | quote }}
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.secretName }}
+                  key: {{ .Values.minio.accessKeyKey }}
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.secretName }}
+                  key: {{ .Values.minio.secretKeyKey }}
+            {{- end }}
             - name: MONITORING_ENABLED
               value: {{ .Values.monitoring.enabled | quote }}
           {{- if .Values.sso.enabled }}

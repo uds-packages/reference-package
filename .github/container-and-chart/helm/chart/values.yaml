@@ -18,6 +18,16 @@ database:
   secretName: "reference-package-postgres"
   secretKey: "PASSWORD"
 
+minio:
+  enabled: false
+  bucket: "reference"
+  endpoint: "uds-minio-hl.minio.svc.cluster.local:9000"
+  useSSL: false
+  # Credentials secret rendered by the uds-reference-package-config chart
+  secretName: "reference-package-minio-creds"
+  accessKeyKey: "S3_ACCESS_KEY"
+  secretKeyKey: "S3_SECRET_KEY"
+
 sso:
   enabled: false
   secretName: reference-package-sso

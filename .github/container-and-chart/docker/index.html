@@ -183,12 +183,40 @@
                 </tr>
             </tbody>
         </table>
+
+        <h2 style="margin-top: 40px;">Object Storage</h2>
+
+        <div id="minioStatus" class="status-bar status-offline">Connecting to Object Storage...</div>
+
+        <div id="objectControls">
+            <input type="text" id="objectKey" placeholder="Object name">
+            <input type="text" id="objectValue" placeholder="Contents">
+            <button id="putObjectBtn" class="action-btn" onclick="putObject()" disabled>Upload Object</button>
+            <button class="action-btn" style="background-color: #6c757d" onclick="loadObjects()">Refresh</button>
+        </div>
+
+        <table id="objectTable">
+            <thead>
+                <tr>
+                    <th>Object</th>
+                    <th>Size (bytes)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="3" class="loading-spinner">Waiting for object storage connection...</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <script>
         const statusEl = document.getElementById('dbStatus');
         const setBtn = document.getElementById('setBtn');
         const usernameEl = document.getElementById('username');
+        const minioStatusEl = document.getElementById('minioStatus');
+        const putObjectBtn = document.getElementById('putObjectBtn');
 
         // Fetch user info on load
         async function loadUser() {
@@ -285,15 +313,110 @@
             }
         }
 
+        async function putObject() {
+            const key = document.getElementById('objectKey').value;
+            const value = document.getElementById('objectValue').value;
+            if (!key) return;
+
+            const params = new URLSearchParams();
+            params.append('key', key);
+            params.append('value', value);
+
+            try {
+                const response = await fetch('/object-put', { method: 'POST', body: params });
+                if (response.ok) {
+                    document.getElementById('objectKey').value = '';
+                    document.getElementById('objectValue').value = '';
+                    loadObjects();
+                } else {
+                    const err = await response.text();
+                    alert("Error: " + err);
+                }
+            } catch (e) {
+                console.error("Failed to upload object", e);
+            }
+        }
+
+        async function loadObjects() {
+            try {
+                const response = await fetch('/object-list');
+
+                if (response.status === 503) {
+                    minioStatusEl.innerText = "⚠️ Object Storage Offline (Retrying...)";
+                    minioStatusEl.className = "status-bar status-offline";
+                    putObjectBtn.disabled = true;
+                    return;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    minioStatusEl.innerText = "Object Storage Online";
+                    minioStatusEl.className = "status-bar status-online";
+                    putObjectBtn.disabled = false;
+
+                    const tbody = document.querySelector('#objectTable tbody');
+                    tbody.innerHTML = '';
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="color: #999; text-align: center;">No objects found</td></tr>';
+                    } else {
+                        data.forEach(row => {
+                            const encKey = encodeURIComponent(row.key);
+                            tbody.innerHTML += `<tr><td><strong>${row.key}</strong></td><td>${row.size}</td><td><button class="action-btn" onclick="viewObject(decodeURIComponent('${encKey}'))">View</button> <button class="delete-btn" onclick="deleteObject(decodeURIComponent('${encKey}'))">Delete</button></td></tr>`;
+                        });
+                    }
+                }
+            } catch (e) {
+                minioStatusEl.innerText = "❌ Network Error";
+                minioStatusEl.className = "status-bar status-offline";
+                console.error("Failed to load objects", e);
+            }
+        }
+
+        async function viewObject(key) {
+            try {
+                const response = await fetch('/object-get?key=' + encodeURIComponent(key));
+                if (response.ok) {
+                    alert(await response.text());
+                } else {
+                    const err = await response.text();
+                    alert('Error: ' + err);
+                }
+            } catch (e) {
+                console.error('Failed to fetch object', e);
+            }
+        }
+
+        async function deleteObject(key) {
+            const params = new URLSearchParams();
+            params.append('key', key);
+
+            try {
+                const response = await fetch('/object-delete', { method: 'POST', body: params });
+                if (response.ok) {
+                    loadObjects();
+                } else {
+                    const err = await response.text();
+                    alert('Error: ' + err);
+                }
+            } catch (e) {
+                console.error('Failed to delete object', e);
+            }
+        }
+
         setInterval(() => {
             if (setBtn.disabled) {
                 loadKV();
+            }
+            if (putObjectBtn.disabled) {
+                loadObjects();
             }
         }, 3000);
 
         window.onload = () => {
             loadUser();
             loadKV();
+            loadObjects();
         };
     </script>
 </body>

@@ -26,6 +26,27 @@ postgres:
   namespace: postgres
   port: 5432
 
+minio:
+  # Set to true to wire the app to object storage (provisioned by the minio-operator apps override)
+  enabled: false
+  bucket: "reference"
+  endpoint: "uds-minio-hl.minio.svc.cluster.local:9000"
+  useSSL: false
+  # Credentials copied into this namespace by the minio-operator apps override.
+  # Note: Setting accessKey/secretKey to anything other than "" will not use the existingSecret
+  accessKey: ""
+  secretKey: ""
+  existingSecret:
+    name: "reference-package-minio"
+    accessKeyKey: access_key
+    secretKeyKey: secret_key
+  # Set to false to use external object storage
+  internal: true
+  selector:
+    v1.min.io/tenant: uds-minio
+  namespace: minio
+  port: 9000
+
 additionalNetworkAllow: []
 
 monitoring:

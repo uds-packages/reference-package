@@ -13,11 +13,12 @@ components:
     charts:
       - name: uds-reference-package-config
         namespace: reference-package
-        version: 0.1.0
+        version: 0.2.0
         localPath: ../chart
       - name: reference-package
         namespace: reference-package
-        version: 0.1.2
-        url: oci://ghcr.io/uds-packages/reference-package/helm/reference-package
+        version: 0.2.0
+        localPath: ../.github/container-and-chart/helm/chart
+        # url: oci://ghcr.io/uds-packages/reference-package/helm/reference-package
         valuesFiles:
           - ../values/common-values.yaml

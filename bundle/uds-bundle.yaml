@@ -30,11 +30,37 @@ packages:
                 ingress:
                   - remoteNamespace: reference-package
 
+  - name: minio-operator
+    repository: ghcr.io/uds-packages/minio-operator
+    ref: 7.1.1-uds.23-upstream
+    overrides:
+      minio-operator:
+        uds-minio-config:
+          values:
+            # Provision an app-specific bucket + user and copy the credentials
+            # into the reference-package namespace.
+            - path: apps
+              value:
+                - name: reference-package
+                  namespace: reference-package
+                  bucketNames:
+                    - reference
+                  policy: ""
+                  copyPassword:
+                    enabled: true
+                    secretName: "reference-package-minio"
+                    secretIDKey: "access_key"
+                    secretPasswordKey: "secret_key"
+
   - name: reference-package
     path: ../
     ref: dev
     overrides:
       reference-package:
+        uds-reference-package-config:
+          values:
+            - path: minio.enabled
+              value: true
         reference-package:
           values:
             - path: database
@@ -48,3 +74,6 @@ packages:
             - path: monitoring
               value:
                 enabled: true
+            # Leaf path so the chart's minio defaults (secretName, keys, endpoint, bucket) are preserved
+            - path: minio.enabled
+              value: true
