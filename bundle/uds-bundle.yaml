@@ -30,14 +30,18 @@ packages:
                 ingress:
                   - remoteNamespace: reference-package
 
-  - name: minio-operator
-    repository: ghcr.io/uds-packages/minio-operator
-    ref: 7.1.1-uds.23-upstream
+  - name: seaweedfs-operator
+    # Local, unpublished package — path reference until seaweedfs-operator is published.
+    path: ../../seaweedfs-operator
+    ref: dev
+    flavor: upstream
     overrides:
-      minio-operator:
-        uds-minio-config:
+      seaweedfs-operator:
+        uds-seaweedfs-operator-config:
           values:
-            # Provision an app-specific bucket + user and copy the credentials
+            - path: seaweed.enabled
+              value: true
+            # Provision an app-specific bucket + S3 identity and copy the credentials
             # into the reference-package namespace.
             - path: apps
               value:
@@ -45,7 +49,8 @@ packages:
                   namespace: reference-package
                   bucketNames:
                     - reference
-                  policy: ""
+                  remoteSelector:
+                    app: reference-package
                   copyPassword:
                     enabled: true
                     secretName: "reference-package-minio"
@@ -61,6 +66,18 @@ packages:
           values:
             - path: minio.enabled
               value: true
+            # Point the object-storage netpol at the SeaweedFS S3 gateway instead of the MinIO tenant.
+            # Overrides deep-merge with the chart default selector, so the default MinIO tenant
+            # label must be explicitly nulled out or the netpol AND-matches a label no S3 pod has.
+            - path: minio.namespace
+              value: seaweedfs
+            - path: minio.selector
+              value:
+                app.kubernetes.io/name: seaweedfs
+                app.kubernetes.io/component: s3
+                v1.min.io/tenant: null
+            - path: minio.port
+              value: 8333
         reference-package:
           values:
             - path: database
@@ -74,6 +91,9 @@ packages:
             - path: monitoring
               value:
                 enabled: true
-            # Leaf path so the chart's minio defaults (secretName, keys, endpoint, bucket) are preserved
             - path: minio.enabled
               value: true
+            # SeaweedFS S3 gateway endpoint (replaces the MinIO tenant endpoint); creds
+            # secret name/keys are unchanged so the rest of the chart defaults still apply
+            - path: minio.endpoint
+              value: seaweedfs-s3.seaweedfs.svc.cluster.local:8333
