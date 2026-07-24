@@ -1,4 +1,4 @@
-# Copyright 2024 Defense Unicorns
+# Copyright 2024-2026 Defense Unicorns
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 domain: "###ZARF_VAR_DOMAIN###"
@@ -25,6 +25,27 @@ postgres:
     cluster-name: pg-cluster
   namespace: postgres
   port: 5432
+
+objectStorage:
+  # Set to true to wire the app to object storage (provisioned by the minio-operator apps override)
+  enabled: false
+  bucket: "reference"
+  endpoint: "uds-minio-hl.minio.svc.cluster.local:9000"
+  useSSL: false
+  # Credentials copied into this namespace by the minio-operator apps override.
+  # Note: Setting accessKey/secretKey to anything other than "" will not use the existingSecret
+  accessKey: ""
+  secretKey: ""
+  existingSecret:
+    name: "reference-package-minio"
+    accessKeyKey: access_key
+    secretKeyKey: secret_key
+  # Set to false to use external object storage
+  internal: true
+  selector:
+    v1.min.io/tenant: uds-minio
+  namespace: minio
+  port: 9000
 
 additionalNetworkAllow: []
 

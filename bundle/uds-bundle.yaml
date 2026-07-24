@@ -1,4 +1,4 @@
-# Copyright 2024 Defense Unicorns
+# Copyright 2024-2026 Defense Unicorns
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 kind: UDSBundle
@@ -30,21 +30,40 @@ packages:
                 ingress:
                   - remoteNamespace: reference-package
 
+  - name: minio-operator
+    repository: ghcr.io/uds-packages/minio-operator
+    ref: 7.1.1-uds.23-upstream
+    overrides:
+      minio-operator:
+        uds-minio-config:
+          values:
+            - path: apps
+              value:
+                - name: reference-package
+                  namespace: reference-package
+                  bucketNames:
+                    - reference
+                  policy: ""
+                  copyPassword:
+                    enabled: true
+                    secretName: "reference-package-minio"
+                    secretIDKey: "access_key"
+                    secretPasswordKey: "secret_key"
+
   - name: reference-package
     path: ../
     ref: dev
     overrides:
       reference-package:
+        uds-reference-package-config:
+          values:
+            - path: objectStorage.enabled
+              value: true
         reference-package:
           values:
             - path: database
               value:
                 secretName: "reference-package-postgres"
                 secretKey: "PASSWORD"
-            - path: sso
-              value:
-                enabled: true
-                secretName: reference-package-sso
-            - path: monitoring
-              value:
-                enabled: true
+            - path: objectStorage.enabled
+              value: true
