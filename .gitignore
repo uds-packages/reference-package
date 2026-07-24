@@ -3,8 +3,6 @@
 *.tar.gz
 *.tar.zst
 reference-package
-
-# Compiled Go binary (build artifact, never commit)
 .github/container-and-chart/docker/reference-package
 
 ~/
