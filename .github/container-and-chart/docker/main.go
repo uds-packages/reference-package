@@ -437,7 +437,8 @@ func main() {
 			minio.PutObjectOptions{ContentType: "text/plain"})
 		if err != nil {
 			trackRequest("/object-put", "500")
-			http.Error(w, "Object storage error: "+err.Error(), 500)
+			fmt.Printf("[S3-ERROR] /object-put failed: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
@@ -471,7 +472,8 @@ func main() {
 
 		if err := s3Client.RemoveObject(r.Context(), s3Bucket, key, minio.RemoveObjectOptions{}); err != nil {
 			trackRequest("/object-delete", "500")
-			http.Error(w, "Object storage error: "+err.Error(), 500)
+			fmt.Printf("[S3-ERROR] /object-delete failed: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
@@ -506,7 +508,8 @@ func main() {
 		obj, err := s3Client.GetObject(r.Context(), s3Bucket, key, minio.GetObjectOptions{})
 		if err != nil {
 			trackRequest("/object-get", "500")
-			http.Error(w, "Object storage error: "+err.Error(), 500)
+			fmt.Printf("[S3-ERROR] /object-get failed: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		defer obj.Close()
@@ -520,7 +523,8 @@ func main() {
 				http.Error(w, "Object not found", http.StatusNotFound)
 			} else {
 				trackRequest("/object-get", "500")
-				http.Error(w, "Failed to read object", http.StatusInternalServerError)
+				fmt.Printf("[S3-ERROR] /object-get read failed: %v\n", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 			}
 			return
 		}
@@ -535,9 +539,9 @@ func main() {
 		s3Mu.RLock()
 		defer s3Mu.RUnlock()
 
-		w.Header().Set("Content-Type", "application/json")
 		if s3Client == nil {
 			trackRequest("/object-list", "503")
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			json.NewEncoder(w).Encode([]ObjectInfo{})
 			return
@@ -547,13 +551,15 @@ func main() {
 		for obj := range s3Client.ListObjects(r.Context(), s3Bucket, minio.ListObjectsOptions{Recursive: true}) {
 			if obj.Err != nil {
 				trackRequest("/object-list", "500")
-				http.Error(w, "List failed: "+obj.Err.Error(), 500)
+				fmt.Printf("[S3-ERROR] /object-list failed: %v\n", obj.Err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 			objects = append(objects, ObjectInfo{Key: obj.Key, Size: obj.Size})
 		}
 
 		trackRequest("/object-list", "200")
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(objects)
 	}))
 
