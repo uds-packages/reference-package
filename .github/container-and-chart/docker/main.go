@@ -10,6 +10,7 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -513,8 +514,14 @@ func main() {
 		// minio-go defers the actual fetch until read, so a missing key surfaces here.
 		data, err := io.ReadAll(obj)
 		if err != nil {
-			trackRequest("/object-get", "404")
-			http.Error(w, "Object not found", http.StatusNotFound)
+			var minioErr minio.ErrorResponse
+			if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
+				trackRequest("/object-get", "404")
+				http.Error(w, "Object not found", http.StatusNotFound)
+			} else {
+				trackRequest("/object-get", "500")
+				http.Error(w, "Failed to read object", http.StatusInternalServerError)
+			}
 			return
 		}
 
