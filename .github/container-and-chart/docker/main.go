@@ -543,7 +543,7 @@ func main() {
 			return
 		}
 
-		var objects []ObjectInfo
+		objects := []ObjectInfo{} // guarantees `[]` in JSON output
 		for obj := range s3Client.ListObjects(r.Context(), s3Bucket, minio.ListObjectsOptions{Recursive: true}) {
 			if obj.Err != nil {
 				trackRequest("/object-list", "500")
@@ -607,11 +607,12 @@ func updateObjectCount(ctx context.Context, client *minio.Client, bucket string)
 // refreshObjectCount is a convenience wrapper that uses the global s3Client.
 func refreshObjectCount(ctx context.Context) error {
 	s3Mu.RLock()
-	defer s3Mu.RUnlock()
-	if s3Client == nil {
+	client, bucket := s3Client, s3Bucket
+	s3Mu.RUnlock()
+	if client == nil {
 		return fmt.Errorf("object storage not connected")
 	}
-	return updateObjectCount(ctx, s3Client, s3Bucket)
+	return updateObjectCount(ctx, client, bucket)
 }
 
 func initSSO(ctx context.Context) error {
