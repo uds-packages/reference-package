@@ -758,6 +758,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   300,
 	})
 	http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
