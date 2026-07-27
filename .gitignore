@@ -2,6 +2,9 @@
 **/*.tfstate.backup
 *.tar.gz
 *.tar.zst
+reference-package
+.github/container-and-chart/docker/reference-package
+
 ~/
 .DS_Store
 defense-unicorns-distro/preflight.sh

@@ -4,7 +4,7 @@ The Reference Package is configured using the [application's Helm chart](https:/
 
 ## Bundle Overrides
 
-Use bundle overrides to configure the Database, SSO, and Monitoring.
+Use bundle overrides to configure the Database, SSO, Monitoring, and Object Storage.
 
 ```yaml
 # bundle/uds-bundle.yaml
@@ -97,6 +97,64 @@ For external databases (non-operator), set `postgres.password` directly and prov
 
 > [!IMPORTANT]
 > You can learn more about configuring the databases and operator within the [Postgres Operator docs](https://github.com/zalando/postgres-operator/tree/master/docs).
+
+### Object Storage
+
+The Reference Package can persist objects in an S3-compatible object store. The Go application speaks the S3 API directly, so the same values work with MinIO, SeaweedFS, or an external S3 provider. Object storage is disabled by default. To enable it, set `objectStorage.enabled: true` on both the application chart and the `uds-reference-package-config` chart.
+
+Enabling object storage splits responsibility across the two charts. The config chart renders a credentials secret (`reference-package-minio-creds`) in the `reference-package` namespace and opens a NetworkPolicy egress rule from the application to the storage backend. The application chart injects the endpoint, bucket, and those credentials into the container as `S3_*` environment variables.
+
+If you are using the [uds-package-minio-operator](https://github.com/uds-packages/minio-operator) in your bundle, the operator provisions the bucket and copies its access credentials into a secret named `reference-package-minio`. The config chart looks up that secret and re-renders it into `reference-package-minio-creds` via the below values:
+
+```yaml title="chart/values.yaml"
+objectStorage:
+  # Set to true to render the credentials secret and open egress to the backend
+  enabled: false
+  # Bucket the application reads from and writes to
+  bucket: "reference"
+  # Backend endpoint in host:port form, no scheme
+  endpoint: "uds-minio-hl.minio.svc.cluster.local:9000"
+  # Set to true when the endpoint terminates TLS
+  useSSL: false
+  # Credentials copied into this namespace by the minio-operator apps override.
+  # Note: Setting accessKey/secretKey to anything other than "" will not use the existingSecret
+  accessKey: ""
+  secretKey: ""
+  existingSecret:
+    name: "reference-package-minio"
+    accessKeyKey: access_key
+    secretKeyKey: secret_key
+  # Set to false to use external object storage
+  internal: true
+  selector:
+    v1.min.io/tenant: uds-minio
+  namespace: minio
+  port: 9000
+```
+
+The application chart carries a matching `objectStorage` block: its `endpoint`, `bucket`, and `useSSL` are the values the container connects with, and both charts default to the in-cluster MinIO service. Enable object storage on both charts through the bundle:
+
+```yaml title="bundle/uds-bundle.yaml"
+overrides:
+  reference-package:
+    # Config chart: renders the credentials secret and opens egress
+    uds-reference-package-config:
+      values:
+        - path: objectStorage.enabled
+          value: true
+    # Application chart: connects to the backend and reads the credentials
+    reference-package:
+      values:
+        - path: objectStorage.enabled
+          value: true
+```
+
+For external object storage (non-operator), set `objectStorage.internal` to `false` on the config chart and set the `endpoint`, `bucket`, and credentials for your provider on the application chart. Provide credentials through `objectStorage.accessKey` and `objectStorage.secretKey`, or point `objectStorage.existingSecret` at a secret you manage.
+
+> [!NOTE]
+> Setting `objectStorage.internal` to `false` also changes the egress rule from a scoped namespace selector to unrestricted egress. See [Networking patterns](networking-patterns.md) for details.
+
+Reference the [MinIO Operator docs](https://github.com/uds-packages/minio-operator) for provisioning buckets and credentials.
 
 ### Single Sign-On
 

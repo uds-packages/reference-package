@@ -1,4 +1,4 @@
-# Copyright 2024 Defense Unicorns
+# Copyright 2024-2026 Defense Unicorns
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 apiVersion: uds.dev/v1alpha1
@@ -64,6 +64,21 @@ spec:
         remoteGenerated: Anywhere
         {{- end }}
         description: "Reference Package Postgres"
+
+      {{- if .Values.objectStorage.enabled }}
+      - direction: Egress
+        selector:
+          app: reference-package
+        {{- if .Values.objectStorage.internal }}
+        remoteNamespace: {{ .Values.objectStorage.namespace | quote }}
+        remoteSelector:
+          {{ .Values.objectStorage.selector | toYaml | nindent 10 }}
+        port: {{ .Values.objectStorage.port }}
+        {{- else }}
+        remoteGenerated: Anywhere
+        {{- end }}
+        description: "Reference Package Object Storage"
+      {{- end }}
 
       - direction: Egress
         remoteNamespace: keycloak
