@@ -4,12 +4,16 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"html/template"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +23,8 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -28,6 +34,8 @@ import (
 //go:embed index.html
 var indexHTML string
 
+var indexTmpl = template.Must(template.New("index").Parse(indexHTML))
+
 type KVPair struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
@@ -36,6 +44,11 @@ type KVPair struct {
 type UserInfo struct {
 	Username string `json:"username"`
 	Type     string `json:"type"`
+}
+
+type ObjectInfo struct {
+	Key  string `json:"key"`
+	Size int64  `json:"size"`
 }
 
 // --- Global Variables ---
@@ -49,10 +62,23 @@ var (
 	dbPool *pgxpool.Pool
 	dbMu   sync.RWMutex
 
+	// Object Storage State
+	s3Client *minio.Client
+	s3Bucket string
+	s3Mu     sync.RWMutex
+
 	// Prometheus Metrics
 	dbConnectedMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "app_database_connected",
 		Help: "Binary status of database connection (1 = connected, 0 = disconnected)",
+	})
+	objectStorageConnectedMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "app_object_storage_connected",
+		Help: "Binary status of object storage connection (1 = connected, 0 = disconnected)",
+	})
+	objectCountMetric = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "reference_package_object_count",
+		Help: "Current number of objects stored in the configured bucket",
 	})
 	kvCountMetric = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "reference_package_kv_count",
@@ -107,6 +133,56 @@ func main() {
 
 		if err := updateKVCount(context.Background(), pool); err != nil {
 			fmt.Printf("Failed to initialize kv count metric: %v\n", err)
+		}
+	}()
+
+	// --- 1b. Background Object Storage Connection ---
+	go func() {
+		endpoint := os.Getenv("S3_ENDPOINT")
+		if endpoint == "" {
+			fmt.Println("S3_ENDPOINT not set. Running in No-S3 mode.")
+			objectStorageConnectedMetric.Set(0)
+			return
+		}
+
+		bucket := os.Getenv("S3_BUCKET")
+		useSSL := os.Getenv("S3_USE_SSL") == "true"
+
+		client, err := minio.New(endpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(os.Getenv("S3_ACCESS_KEY"), os.Getenv("S3_SECRET_KEY"), ""),
+			Secure: useSSL,
+		})
+		if err != nil {
+			fmt.Printf("Failed to create object storage client: %v\n", err)
+			objectStorageConnectedMetric.Set(0)
+			return
+		}
+
+		for {
+			checkCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			exists, err := client.BucketExists(checkCtx, bucket)
+			cancel()
+			if err == nil && exists {
+				fmt.Println("Successfully connected to object storage!")
+				break
+			}
+			if err == nil && !exists {
+				fmt.Printf("Object storage bucket %q not found yet, retrying in 5s...\n", bucket)
+			} else {
+				fmt.Printf("Object storage not available yet, retrying in 5s... (%v)\n", err)
+			}
+			objectStorageConnectedMetric.Set(0)
+			time.Sleep(5 * time.Second)
+		}
+
+		s3Mu.Lock()
+		s3Client = client
+		s3Bucket = bucket
+		s3Mu.Unlock()
+		objectStorageConnectedMetric.Set(1)
+
+		if err := updateObjectCount(context.Background(), client, bucket); err != nil {
+			fmt.Printf("Failed to initialize object count metric: %v\n", err)
 		}
 	}()
 
@@ -338,6 +414,155 @@ func main() {
 		json.NewEncoder(w).Encode(pairs)
 	}))
 
+	// API: Put Object
+	http.HandleFunc("/object-put", protect(func(w http.ResponseWriter, r *http.Request) {
+		s3Mu.RLock()
+		defer s3Mu.RUnlock()
+
+		if s3Client == nil {
+			trackRequest("/object-put", "503")
+			http.Error(w, "Object storage unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		key := r.FormValue("key")
+		if key == "" {
+			trackRequest("/object-put", "400")
+			http.Error(w, "Missing key", http.StatusBadRequest)
+			return
+		}
+		body := []byte(r.FormValue("value"))
+
+		_, err := s3Client.PutObject(r.Context(), s3Bucket, key, bytes.NewReader(body), int64(len(body)),
+			minio.PutObjectOptions{ContentType: "text/plain"})
+		if err != nil {
+			trackRequest("/object-put", "500")
+			fmt.Printf("[S3-ERROR] /object-put failed: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		trackRequest("/object-put", "200")
+		// Refresh object count metric after successful write. Best-effort only.
+		if err := refreshObjectCount(r.Context()); err != nil {
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[METRICS] Failed to refresh object count: %v\n", err)
+			}
+		}
+		fmt.Fprint(w, "Success")
+	}))
+
+	// API: Delete Object
+	http.HandleFunc("/object-delete", protect(func(w http.ResponseWriter, r *http.Request) {
+		s3Mu.RLock()
+		defer s3Mu.RUnlock()
+
+		if s3Client == nil {
+			trackRequest("/object-delete", "503")
+			http.Error(w, "Object storage unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		key := r.FormValue("key")
+		if key == "" {
+			trackRequest("/object-delete", "400")
+			http.Error(w, "Missing key", http.StatusBadRequest)
+			return
+		}
+
+		if err := s3Client.RemoveObject(r.Context(), s3Bucket, key, minio.RemoveObjectOptions{}); err != nil {
+			trackRequest("/object-delete", "500")
+			fmt.Printf("[S3-ERROR] /object-delete failed: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		trackRequest("/object-delete", "200")
+		// Refresh object count metric after successful delete. Best-effort only.
+		if err := refreshObjectCount(r.Context()); err != nil {
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[METRICS] Failed to refresh object count: %v\n", err)
+			}
+		}
+		fmt.Fprint(w, "Success")
+	}))
+
+	// API: Get Object Contents
+	http.HandleFunc("/object-get", protect(func(w http.ResponseWriter, r *http.Request) {
+		s3Mu.RLock()
+		defer s3Mu.RUnlock()
+
+		if s3Client == nil {
+			trackRequest("/object-get", "503")
+			http.Error(w, "Object storage unavailable", http.StatusServiceUnavailable)
+			return
+		}
+
+		key := r.URL.Query().Get("key")
+		if key == "" {
+			trackRequest("/object-get", "400")
+			http.Error(w, "Missing key", http.StatusBadRequest)
+			return
+		}
+
+		obj, err := s3Client.GetObject(r.Context(), s3Bucket, key, minio.GetObjectOptions{})
+		if err != nil {
+			trackRequest("/object-get", "500")
+			fmt.Printf("[S3-ERROR] /object-get failed: %v\n", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		defer obj.Close()
+
+		// minio-go defers the actual fetch until read, so a missing key surfaces here.
+		data, err := io.ReadAll(obj)
+		if err != nil {
+			var minioErr minio.ErrorResponse
+			if errors.As(err, &minioErr) && minioErr.Code == "NoSuchKey" {
+				trackRequest("/object-get", "404")
+				http.Error(w, "Object not found", http.StatusNotFound)
+			} else {
+				trackRequest("/object-get", "500")
+				fmt.Printf("[S3-ERROR] /object-get read failed: %v\n", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		trackRequest("/object-get", "200")
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(data)
+	}))
+
+	// API: List Objects
+	http.HandleFunc("/object-list", protect(func(w http.ResponseWriter, r *http.Request) {
+		s3Mu.RLock()
+		defer s3Mu.RUnlock()
+
+		if s3Client == nil {
+			trackRequest("/object-list", "503")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode([]ObjectInfo{})
+			return
+		}
+
+		objects := []ObjectInfo{} // guarantees `[]` in JSON output
+		for obj := range s3Client.ListObjects(r.Context(), s3Bucket, minio.ListObjectsOptions{Recursive: true}) {
+			if obj.Err != nil {
+				trackRequest("/object-list", "500")
+				fmt.Printf("[S3-ERROR] /object-list failed: %v\n", obj.Err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+			objects = append(objects, ObjectInfo{Key: obj.Key, Size: obj.Size})
+		}
+
+		trackRequest("/object-list", "200")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(objects)
+	}))
+
 	fmt.Println("Server starting on :8080...")
 	http.ListenAndServe(":8080", nil)
 }
@@ -372,6 +597,30 @@ func refreshKVCount(ctx context.Context) error {
 	return updateKVCount(ctx, dbPool)
 }
 
+// updateObjectCount lists the bucket and sets objectCountMetric to the object count.
+func updateObjectCount(ctx context.Context, client *minio.Client, bucket string) error {
+	var count int64
+	for obj := range client.ListObjects(ctx, bucket, minio.ListObjectsOptions{Recursive: true}) {
+		if obj.Err != nil {
+			return obj.Err
+		}
+		count++
+	}
+	objectCountMetric.Set(float64(count))
+	return nil
+}
+
+// refreshObjectCount is a convenience wrapper that uses the global s3Client.
+func refreshObjectCount(ctx context.Context) error {
+	s3Mu.RLock()
+	client, bucket := s3Client, s3Bucket
+	s3Mu.RUnlock()
+	if client == nil {
+		return fmt.Errorf("object storage not connected")
+	}
+	return updateObjectCount(ctx, client, bucket)
+}
+
 func initSSO(ctx context.Context) error {
 	provider, err := oidc.NewProvider(ctx, os.Getenv("KEYCLOAK_URL"))
 	if err != nil {
@@ -391,7 +640,14 @@ func initSSO(ctx context.Context) error {
 
 func serveApp(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, indexHTML)
+	// Object storage is considered configured when the deployment injects
+	// S3_ENDPOINT; Helm gates that env on objectStorage.endpoint being set.
+	data := struct{ ObjectStorageEnabled bool }{
+		ObjectStorageEnabled: os.Getenv("S3_ENDPOINT") != "",
+	}
+	if err := indexTmpl.Execute(w, data); err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func serveLogin(w http.ResponseWriter) {
@@ -496,6 +752,15 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state := randomString(16)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   300,
+	})
 	http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
 }
 
@@ -504,6 +769,15 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
+
+	// Verify the OAuth state against the cookie set at /login to prevent CSRF on the callback.
+	stateCookie, err := r.Cookie("oauth_state")
+	if err != nil || stateCookie.Value == "" || r.URL.Query().Get("state") != stateCookie.Value {
+		http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: "", Path: "/", MaxAge: -1})
+
 	ctx := r.Context()
 	oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
 	if err != nil {

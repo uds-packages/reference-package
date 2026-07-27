@@ -33,6 +33,24 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.database.secretName }}
                   key: {{ .Values.database.secretKey }}
+            {{- if .Values.objectStorage.enabled }}
+            - name: S3_ENDPOINT
+              value: {{ .Values.objectStorage.endpoint | quote }}
+            - name: S3_BUCKET
+              value: {{ .Values.objectStorage.bucket | quote }}
+            - name: S3_USE_SSL
+              value: {{ .Values.objectStorage.useSSL | quote }}
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.objectStorage.secretName }}
+                  key: {{ .Values.objectStorage.accessKeyKey }}
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.objectStorage.secretName }}
+                  key: {{ .Values.objectStorage.secretKeyKey }}
+            {{- end }}
             - name: MONITORING_ENABLED
               value: {{ .Values.monitoring.enabled | quote }}
           {{- if .Values.sso.enabled }}
