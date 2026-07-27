@@ -8,10 +8,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY main.go index.html ./
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o hello-world main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o reference-package main.go
 
 FROM scratch
-COPY --from=builder /app/hello-world /hello-world
+COPY --from=builder /app/reference-package /reference-package
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-ENTRYPOINT ["/hello-world"]
+ENTRYPOINT ["/reference-package"]
