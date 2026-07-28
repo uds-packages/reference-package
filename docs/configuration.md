@@ -20,6 +20,9 @@ overrides:
           value:
             enabled: true
             secretName: reference-package-sso
+            # Set to false to disable the /login-guest path when SSO is enabled.
+            # Defaults to true, which preserves the demo behavior.
+            guestLoginEnabled: true
         - path: monitoring
           value:
             enabled: true
@@ -168,6 +171,16 @@ The UDS Operator reads the SSO configuration from the Package CR (`chart/templat
 - `APP_CALLBACK_URL`
 
 The application mounts the entire secret as environment variables. The `sso.secretName` value in the bundle override must match the name declared in the Package CR — both default to `reference-package-sso`.
+
+#### Disabling guest login
+
+When SSO is enabled the application also exposes a `/login-guest` path that sets a `guest_mode` cookie and grants unauthenticated access to the app's read/write endpoints. This is intentional for the demo but is not appropriate for hardened deployments. Set `sso.guestLoginEnabled: false` on the application chart to:
+
+- return `403 Forbidden` from `/login-guest`,
+- reject any request that presents a `guest_mode` cookie (and expire the cookie on the response so pre-existing guests are evicted immediately), and
+- hide the "Login As Guest" button on the login page.
+
+The flag defaults to `true` to preserve the demo behavior. It only has effect when `sso.enabled: true` — with SSO off, the application already runs without authentication and the flag is a no-op.
 
 You can read more about how UDS Operator SSO secret templating works in the [Register and customize SSO clients](https://docs.defenseunicorns.com/core/how-to-guides/identity--authorization/register-and-customize-sso-clients/) guide.
 
