@@ -30,20 +30,23 @@ packages:
                 ingress:
                   - remoteNamespace: reference-package
 
-  - name: minio-operator
-    repository: ghcr.io/uds-packages/minio-operator
-    ref: 7.1.1-uds.23-upstream
+  - name: seaweedfs-operator
+    repository: ghcr.io/uds-packages/seaweedfs-operator
+    ref: 1.0.26-uds.0-upstream
     overrides:
-      minio-operator:
-        uds-minio-config:
+      seaweedfs-operator:
+        uds-seaweedfs-operator-config:
           values:
+            - path: seaweed.enabled
+              value: true
             - path: apps
               value:
                 - name: reference-package
                   namespace: reference-package
                   bucketNames:
                     - reference
-                  policy: ""
+                  remoteSelector:
+                    app: reference-package
                   copyPassword:
                     enabled: true
                     secretName: "reference-package-minio"

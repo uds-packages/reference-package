@@ -30,7 +30,7 @@ objectStorage:
   # Set to true to wire the app to object storage (provisioned by the minio-operator apps override)
   enabled: false
   bucket: "reference"
-  endpoint: "uds-minio-hl.minio.svc.cluster.local:9000"
+  endpoint: "seaweedfs-s3.seaweedfs.svc.cluster.local:8333"
   useSSL: false
   # Credentials copied into this namespace by the minio-operator apps override.
   # Note: Setting accessKey/secretKey to anything other than "" will not use the existingSecret
@@ -43,9 +43,10 @@ objectStorage:
   # Set to false to use external object storage
   internal: true
   selector:
-    v1.min.io/tenant: uds-minio
-  namespace: minio
-  port: 9000
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/component: s3
+  namespace: seaweedfs
+  port: 8333
 
 additionalNetworkAllow: []
 
