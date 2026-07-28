@@ -53,6 +53,8 @@ spec:
             {{- end }}
             - name: MONITORING_ENABLED
               value: {{ .Values.monitoring.enabled | quote }}
+            - name: SSO_GUEST_LOGIN_ENABLED
+              value: {{ .Values.sso.guestLoginEnabled | quote }}
           {{- if .Values.sso.enabled }}
           envFrom:
             - secretRef:
