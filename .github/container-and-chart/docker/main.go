@@ -343,7 +343,9 @@ func main() {
 				fmt.Printf("[METRICS] Failed to refresh kv count: %v\n", err)
 			}
 		}
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /set response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Delete Value
@@ -395,7 +397,9 @@ func main() {
 			}
 		}
 
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /delete response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Get All Values
@@ -490,7 +494,9 @@ func main() {
 				fmt.Printf("[METRICS] Failed to refresh object count: %v\n", err)
 			}
 		}
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /object-put response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Delete Object
@@ -525,7 +531,9 @@ func main() {
 				fmt.Printf("[METRICS] Failed to refresh object count: %v\n", err)
 			}
 		}
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /object-delete response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Get Object Contents
@@ -553,7 +561,7 @@ func main() {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		defer obj.Close()
+		defer func() { _ = obj.Close() }()
 
 		// minio-go defers the actual fetch until read, so a missing key surfaces here.
 		data, err := io.ReadAll(obj)

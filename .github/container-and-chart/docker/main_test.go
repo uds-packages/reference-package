@@ -77,7 +77,7 @@ func TestHandleGuestLogin(t *testing.T) {
 			cfg.handleGuestLogin(recorder, request)
 
 			resp := recorder.Result()
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != testCase.expectedStatus {
 				t.Fatalf("status: got %d, want %d", resp.StatusCode, testCase.expectedStatus)
@@ -142,7 +142,7 @@ func TestProtectMiddleware(t *testing.T) {
 			cfg.protect(canaryHandler)(recorder, request)
 
 			resp := recorder.Result()
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != testCase.expectedStatus {
 				t.Fatalf("status: got %d, want %d", resp.StatusCode, testCase.expectedStatus)
