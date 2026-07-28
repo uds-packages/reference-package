@@ -7,8 +7,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY main.go index.html ./
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o reference-package main.go
+COPY *.go index.html ./
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o reference-package .
 
 FROM scratch
 COPY --from=builder /app/reference-package /reference-package
