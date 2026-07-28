@@ -1,0 +1,43 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+name: Go Lint
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/container-and-chart/docker/**"
+      - ".github/container-and-chart/.golangci.yaml"
+      - ".github/workflows/go-lint.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Go
+        # renovate: datasource=github-tags depName=actions/setup-go versioning=semver
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: .github/container-and-chart/docker/go.mod
+          cache-dependency-path: .github/container-and-chart/docker/go.sum
+
+      - name: golangci-lint
+        # renovate: datasource=github-tags depName=golangci/golangci-lint-action versioning=semver
+        uses: golangci/golangci-lint-action@v8
+        with:
+          # renovate: datasource=github-tags depName=golangci/golangci-lint versioning=semver
+          version: v2.12.2
+          working-directory: .github/container-and-chart/docker
+          args: --config=../.golangci.yaml
