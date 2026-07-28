@@ -51,12 +51,23 @@ type ObjectInfo struct {
 	Size int64  `json:"size"`
 }
 
+// serverConfig captures the auth-related runtime configuration for handlers
+// that need to be unit-testable. Handlers close over a *serverConfig so tests
+// can construct their own instance per case rather than mutating package
+// globals. In production main() builds one instance from environment values.
+type serverConfig struct {
+	ssoEnabled        bool
+	guestLoginEnabled bool
+	oidcVerifier      *oidc.IDTokenVerifier
+}
+
 // --- Global Variables ---
 var (
 	// SSO State
-	oauth2Config *oauth2.Config
-	oidcVerifier *oidc.IDTokenVerifier
-	ssoEnabled   bool
+	oauth2Config      *oauth2.Config
+	oidcVerifier      *oidc.IDTokenVerifier
+	ssoEnabled        bool
+	guestLoginEnabled bool
 
 	// DB State
 	dbPool *pgxpool.Pool
@@ -201,6 +212,16 @@ func main() {
 		ssoEnabled = false
 	}
 
+	// Guest login is enabled by default; operators opt into the stricter mode by
+	// setting SSO_GUEST_LOGIN_ENABLED=false (see chart/values.yaml sso.guestLoginEnabled).
+	guestLoginEnabled = os.Getenv("SSO_GUEST_LOGIN_ENABLED") != "false"
+
+	cfg := &serverConfig{
+		ssoEnabled:        ssoEnabled,
+		guestLoginEnabled: guestLoginEnabled,
+		oidcVerifier:      oidcVerifier,
+	}
+
 	// --- 3. HTTP Routes ---
 
 	if os.Getenv("MONITORING_ENABLED") == "true" {
@@ -209,7 +230,7 @@ func main() {
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		writeResponseBody(w, []byte("OK"))
 	})
 
 	// Main App Page
@@ -221,6 +242,11 @@ func main() {
 
 		// Check Guest
 		if _, err := r.Cookie("guest_mode"); err == nil {
+			if !guestLoginEnabled {
+				expireGuestCookie(w)
+				cfg.serveLogin(w)
+				return
+			}
 			serveApp(w)
 			return
 		}
@@ -228,12 +254,12 @@ func main() {
 		// Check SSO
 		cookie, err := r.Cookie("auth_token")
 		if err != nil {
-			serveLogin(w)
+			cfg.serveLogin(w)
 			return
 		}
 		_, err = oidcVerifier.Verify(r.Context(), cookie.Value)
 		if err != nil {
-			serveLogin(w)
+			cfg.serveLogin(w)
 			return
 		}
 
@@ -242,16 +268,16 @@ func main() {
 
 	// Auth Handlers
 	http.HandleFunc("/login", handleLogin)
-	http.HandleFunc("/login-guest", handleGuestLogin)
+	http.HandleFunc("/login-guest", cfg.handleGuestLogin)
 	http.HandleFunc("/callback", handleCallback)
 	http.HandleFunc("/logout", handleLogout)
 
 	// User Info API
-	http.HandleFunc("/whoami", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/whoami", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if _, err := r.Cookie("guest_mode"); err == nil {
-			json.NewEncoder(w).Encode(UserInfo{Username: "Guest", Type: "guest"})
+			writeJSONResponse(w, UserInfo{Username: "Guest", Type: "guest"})
 			return
 		}
 
@@ -268,17 +294,17 @@ func main() {
 					if name == "" {
 						name = claims.Email
 					}
-					json.NewEncoder(w).Encode(UserInfo{Username: name, Type: "sso"})
+					writeJSONResponse(w, UserInfo{Username: name, Type: "sso"})
 					return
 				}
 			}
 		}
 
-		json.NewEncoder(w).Encode(UserInfo{Username: "Unknown", Type: "unknown"})
+		writeJSONResponse(w, UserInfo{Username: "Unknown", Type: "unknown"})
 	}))
 
 	// API: Set Value
-	http.HandleFunc("/set", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/set", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		dbMu.RLock()
 		defer dbMu.RUnlock()
 
@@ -317,11 +343,13 @@ func main() {
 				fmt.Printf("[METRICS] Failed to refresh kv count: %v\n", err)
 			}
 		}
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /set response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Delete Value
-	http.HandleFunc("/delete", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/delete", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		dbMu.RLock()
 		defer dbMu.RUnlock()
 
@@ -369,11 +397,13 @@ func main() {
 			}
 		}
 
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /delete response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Get All Values
-	http.HandleFunc("/get-all", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/get-all", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		dbMu.RLock()
 		defer dbMu.RUnlock()
 
@@ -381,7 +411,7 @@ func main() {
 			trackRequest("/get-all", "503")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode([]KVPair{})
+			writeJSONResponse(w, []KVPair{})
 			return
 		}
 
@@ -404,18 +434,33 @@ func main() {
 
 		var pairs []KVPair
 		for rows.Next() {
-			var p KVPair
-			rows.Scan(&p.Key, &p.Value)
-			pairs = append(pairs, p)
+			var pair KVPair
+			if err := rows.Scan(&pair.Key, &pair.Value); err != nil {
+				trackRequest("/get-all", "500")
+				if os.Getenv("DB_LOG_LEVEL") == "debug" {
+					fmt.Printf("[DB-ERROR] Scan failed: %v\n", err)
+				}
+				http.Error(w, "Query failed", http.StatusInternalServerError)
+				return
+			}
+			pairs = append(pairs, pair)
+		}
+		if err := rows.Err(); err != nil {
+			trackRequest("/get-all", "500")
+			if os.Getenv("DB_LOG_LEVEL") == "debug" {
+				fmt.Printf("[DB-ERROR] Row iteration failed: %v\n", err)
+			}
+			http.Error(w, "Query failed", http.StatusInternalServerError)
+			return
 		}
 
 		trackRequest("/get-all", "200")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(pairs)
+		writeJSONResponse(w, pairs)
 	}))
 
 	// API: Put Object
-	http.HandleFunc("/object-put", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/object-put", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		s3Mu.RLock()
 		defer s3Mu.RUnlock()
 
@@ -449,11 +494,13 @@ func main() {
 				fmt.Printf("[METRICS] Failed to refresh object count: %v\n", err)
 			}
 		}
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /object-put response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Delete Object
-	http.HandleFunc("/object-delete", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/object-delete", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		s3Mu.RLock()
 		defer s3Mu.RUnlock()
 
@@ -484,11 +531,13 @@ func main() {
 				fmt.Printf("[METRICS] Failed to refresh object count: %v\n", err)
 			}
 		}
-		fmt.Fprint(w, "Success")
+		if _, err := fmt.Fprint(w, "Success"); err != nil {
+			fmt.Printf("[HTTP-ERROR] /object-delete response write failed: %v\n", err)
+		}
 	}))
 
 	// API: Get Object Contents
-	http.HandleFunc("/object-get", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/object-get", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		s3Mu.RLock()
 		defer s3Mu.RUnlock()
 
@@ -512,7 +561,7 @@ func main() {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		defer obj.Close()
+		defer func() { _ = obj.Close() }()
 
 		// minio-go defers the actual fetch until read, so a missing key surfaces here.
 		data, err := io.ReadAll(obj)
@@ -531,11 +580,11 @@ func main() {
 
 		trackRequest("/object-get", "200")
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write(data)
+		writeResponseBody(w, data)
 	}))
 
 	// API: List Objects
-	http.HandleFunc("/object-list", protect(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/object-list", cfg.protect(func(w http.ResponseWriter, r *http.Request) {
 		s3Mu.RLock()
 		defer s3Mu.RUnlock()
 
@@ -543,7 +592,7 @@ func main() {
 			trackRequest("/object-list", "503")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode([]ObjectInfo{})
+			writeJSONResponse(w, []ObjectInfo{})
 			return
 		}
 
@@ -560,11 +609,14 @@ func main() {
 
 		trackRequest("/object-list", "200")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(objects)
+		writeJSONResponse(w, objects)
 	}))
 
 	fmt.Println("Server starting on :8080...")
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		fmt.Printf("Server failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 // --- Helper Functions ---
@@ -650,9 +702,21 @@ func serveApp(w http.ResponseWriter) {
 	}
 }
 
-func serveLogin(w http.ResponseWriter) {
+func writeJSONResponse(w http.ResponseWriter, value any) {
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		fmt.Printf("Failed to encode JSON response: %v\n", err)
+	}
+}
+
+func writeResponseBody(w http.ResponseWriter, data []byte) {
+	if _, err := w.Write(data); err != nil {
+		fmt.Printf("Failed to write response body: %v\n", err)
+	}
+}
+
+func (cfg *serverConfig) serveLogin(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, `
+	if _, err := fmt.Fprintf(w, `
         <html>
         <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; margin-top: 50px; background-color: #f9f9f9;">
             <div style="max-width: 400px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
@@ -662,24 +726,40 @@ func serveLogin(w http.ResponseWriter) {
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <a href="/login" style="background: #007bff; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
                         Login with SSO
-                    </a>
-                    <a href="/login-guest" style="background: #6c757d; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
-                        Login As Guest
-                    </a>
+                    </a>%s
                 </div>
             </div>
         </body>
         </html>
-    `)
+    `, cfg.guestLoginButtonHTML()); err != nil {
+		fmt.Printf("Failed to render login page: %v\n", err)
+	}
 }
 
-func protect(next http.HandlerFunc) http.HandlerFunc {
+// guestLoginButtonHTML returns the "Login As Guest" anchor when guest login is
+// enabled, or an empty string when it has been disabled at deploy time.
+func (cfg *serverConfig) guestLoginButtonHTML() string {
+	if !cfg.guestLoginEnabled {
+		return ""
+	}
+	return `
+                    <a href="/login-guest" style="background: #6c757d; color: white; padding: 12px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.2s;">
+                        Login As Guest
+                    </a>`
+}
+
+func (cfg *serverConfig) protect(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !ssoEnabled {
+		if !cfg.ssoEnabled {
 			next(w, r)
 			return
 		}
 		if _, err := r.Cookie("guest_mode"); err == nil {
+			if !cfg.guestLoginEnabled {
+				expireGuestCookie(w)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 			next(w, r)
 			return
 		}
@@ -688,7 +768,7 @@ func protect(next http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		_, err = oidcVerifier.Verify(r.Context(), cookie.Value)
+		_, err = cfg.oidcVerifier.Verify(r.Context(), cookie.Value)
 		if err != nil {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
@@ -697,7 +777,18 @@ func protect(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func handleGuestLogin(w http.ResponseWriter, r *http.Request) {
+// expireGuestCookie tells the browser to drop any existing guest_mode cookie.
+// Used when guest login has been disabled at deploy time so that pre-existing
+// guests are evicted immediately rather than waiting for the cookie's MaxAge.
+func expireGuestCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: "guest_mode", Value: "", Path: "/", MaxAge: -1})
+}
+
+func (cfg *serverConfig) handleGuestLogin(w http.ResponseWriter, r *http.Request) {
+	if cfg.ssoEnabled && !cfg.guestLoginEnabled {
+		http.Error(w, "Guest login is disabled", http.StatusForbidden)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "guest_mode",
 		Value:    "true",
@@ -751,7 +842,11 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	state := randomString(16)
+	state, err := randomString(16)
+	if err != nil {
+		http.Error(w, "Failed to generate OAuth state", http.StatusInternalServerError)
+		return
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
@@ -805,8 +900,10 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func randomString(n int) string {
+func randomString(n int) (string, error) {
 	b := make([]byte, n)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("read random bytes: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }

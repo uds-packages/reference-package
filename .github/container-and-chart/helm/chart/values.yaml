@@ -3,7 +3,7 @@
 
 image:
   repository: reference-package
-  tag: v0.2.0
+  tag: v0.3.0
   pullPolicy: IfNotPresent
 
 service:
@@ -31,6 +31,9 @@ objectStorage:
 sso:
   enabled: false
   secretName: reference-package-sso
+  # When true, /login-guest is enabled and the login page shows the guest button.
+  # Only meaningful when sso.enabled is true.
+  guestLoginEnabled: true
 
 monitoring:
   enabled: false
