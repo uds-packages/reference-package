@@ -10,7 +10,7 @@ metadata:
 packages:
   - name: postgres-operator
     repository: ghcr.io/uds-packages/postgres-operator
-    ref: 1.15.1-uds.4-upstream
+    ref: 1.15.1-uds.5-upstream
     overrides:
       postgres-operator:
         uds-postgres-config:
@@ -32,7 +32,7 @@ packages:
 
   - name: minio-operator
     repository: ghcr.io/uds-packages/minio-operator
-    ref: 7.1.1-uds.23-upstream
+    ref: 7.1.1-uds.24-upstream
     overrides:
       minio-operator:
         uds-minio-config:
