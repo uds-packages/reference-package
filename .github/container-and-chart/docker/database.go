@@ -223,3 +223,21 @@ func refreshKVCount(ctx context.Context) error {
 	}
 	return updateKVCount(ctx, dbPool)
 }
+
+func databaseReady(ctx context.Context) error {
+	dbMu.RLock()
+	pool := dbPool
+	dbMu.RUnlock()
+	if pool == nil {
+		dbConnectedMetric.Set(0)
+		return fmt.Errorf("db not connected")
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		dbConnectedMetric.Set(0)
+		return err
+	}
+
+	dbConnectedMetric.Set(1)
+	return nil
+}

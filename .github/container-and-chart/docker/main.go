@@ -46,10 +46,8 @@ func main() {
 		http.Handle("/metrics", promhttp.Handler())
 	}
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		writeResponseBody(w, []byte("OK"))
-	})
+	http.HandleFunc("/health", handleHealth)
+	http.HandleFunc("/ready", handleReady)
 
 	http.HandleFunc("/", cfg.handleRoot)
 	http.HandleFunc("/login", handleLogin)
