@@ -12,6 +12,10 @@ variables:
   - name: DOMAIN
     default: "uds.dev"
 
+values:
+  files:
+    - values/zarf-values.yaml
+
 components:
   - name: reference-package
     required: true

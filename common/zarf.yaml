@@ -15,9 +15,15 @@ components:
         namespace: reference-package
         version: 0.2.0
         localPath: ../chart
+        values:
+          - sourcePath: .uds-reference-package-config
+            targetPath: .
       - name: reference-package
         namespace: reference-package
         version: 0.3.0
         url: oci://ghcr.io/uds-packages/reference-package/helm/reference-package
         valuesFiles:
           - ../values/common-values.yaml
+        values:
+          - sourcePath: .reference-package
+            targetPath: .
