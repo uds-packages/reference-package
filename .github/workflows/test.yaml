@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: test-flavor
-        uses: defenseunicorns/uds-common/.github/actions/test-flavor@a99629a47585162e7a133c6f58c9874268103155 # v1.28.3
+        uses: defenseunicorns/uds-common/.github/actions/test-flavor@add-cli-next-bundles-compatibility
         id: test-flavor
     outputs:
       upgrade-flavors: ${{ steps.test-flavor.outputs.upgrade-flavors }}
@@ -43,10 +43,11 @@ jobs:
       matrix:
         type: [install, upgrade]
         flavor: [upstream, unicorn]
-    uses: defenseunicorns/uds-common/.github/workflows/callable-test.yaml@a99629a47585162e7a133c6f58c9874268103155 # v1.28.3
+        mode: [legacy, next]
+    uses: defenseunicorns/uds-common/.github/workflows/callable-test.yaml@add-cli-next-bundles-compatibility
     with:
       timeout: 30
-      options: --set BASE_REPO="ghcr.io/uds-packages"
+      options: ${{ matrix.mode == 'next' && '--set BASE_REPO="ghcr.io/uds-packages" --set NEXT_MODE=true' || '--set BASE_REPO="ghcr.io/uds-packages"' }}
       runsOn: appstore-4-core-amd64
       upgrade-flavors: ${{ needs.check-flavor.outputs.upgrade-flavors }}
       flavor: ${{ matrix.flavor }}
