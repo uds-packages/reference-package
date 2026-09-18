@@ -2,22 +2,22 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 uds-reference-package-config:
-  domain: {{ .vars.domain }}
+  domain: {{.vars.domain}}
   sso:
-    enabled: {{ .vars.sso_enabled }}
+    enabled: {{.vars.sso_enabled}}
   monitoring:
-    enabled: {{ .vars.monitoring_enabled }}
+    enabled: {{.vars.monitoring_enabled}}
   objectStorage:
-    enabled: {{ .vars.object_storage_enabled }}
+    enabled: {{.vars.object_storage_enabled}}
 
 reference-package:
-  domain: {{ .vars.domain }}
+  domain: {{.vars.domain}}
   sso:
-    enabled: {{ .vars.sso_enabled }}
+    enabled: {{.vars.sso_enabled}}
   monitoring:
-    enabled: {{ .vars.monitoring_enabled }}
+    enabled: {{.vars.monitoring_enabled}}
   database:
     secretName: reference-package-postgres
     secretKey: PASSWORD
   objectStorage:
-    enabled: {{ .vars.object_storage_enabled }}
+    enabled: {{.vars.object_storage_enabled}}
