@@ -3,14 +3,14 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/uds-cli/refs/heads/main/tasks.schema.json
 includes:
   - test: ./tasks/test.yaml
-  - create: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/create.yaml
-  - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/lint.yaml
-  - pull: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/pull.yaml
-  - deploy: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/deploy.yaml
-  - setup: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/setup.yaml
-  - actions: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/actions.yaml
-  - upgrade: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/upgrade.yaml
-  - publish: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.28.3/tasks/publish.yaml
+  - create: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/create.yaml
+  - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/lint.yaml
+  - pull: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/pull.yaml
+  - deploy: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/deploy.yaml
+  - setup: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/setup.yaml
+  - actions: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/actions.yaml
+  - upgrade: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/upgrade.yaml
+  - publish: https://raw.githubusercontent.com/defenseunicorns/uds-common/add-cli-next-bundles-compatibility/tasks/publish.yaml
 
 tasks:
   - name: default
@@ -57,6 +57,8 @@ tasks:
       - task: upgrade:create-latest-tag-bundle
       - task: setup:k3d-test-cluster
       - task: deploy:test-bundle
+        with:
+          next_mode: auto
       - task: create-dev-package
       - task: create-deploy-test-bundle
 

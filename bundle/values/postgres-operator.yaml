@@ -1,0 +1,17 @@
+# Copyright 2024-2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+uds-postgres-config:
+  postgresql:
+    enabled: true
+    teamId: uds
+    volume:
+      size: 10Gi
+    numberOfInstances: 2
+    users:
+      reference-package.reference-package: []
+    databases:
+      reference: reference-package.reference-package
+    version: "15"
+    ingress:
+      - remoteNamespace: reference-package

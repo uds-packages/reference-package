@@ -1,0 +1,15 @@
+# Copyright 2024-2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+uds-minio-config:
+  apps:
+    - name: reference-package
+      namespace: reference-package
+      bucketNames:
+        - reference
+      policy: ""
+      copyPassword:
+        enabled: true
+        secretName: reference-package-minio
+        secretIDKey: access_key
+        secretPasswordKey: secret_key
