@@ -1,4 +1,4 @@
-# Copyright 2024 Defense Unicorns
+# Copyright 2024-2026 Defense Unicorns
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 # Values common to all flavors
@@ -8,6 +8,22 @@ sso:
   secretName: reference-package-sso
 monitoring:
   enabled: true
+
+# Wire Core's trust bundle through the application chart's generic extensions.
+extraVolumes:
+  - name: uds-trust-bundle
+    configMap:
+      name: uds-trust-bundle
+      # Core does not create this ConfigMap when no CA bundle is configured.
+      optional: true
+extraVolumeMounts:
+  - name: uds-trust-bundle
+    mountPath: /etc/uds/certs
+    readOnly: true
+extraEnv:
+  # Go loads these additional CAs alongside the image's system CA bundle.
+  - name: SSL_CERT_DIR
+    value: /etc/ssl/certs:/etc/uds/certs
 
 objectStorage:
   enabled: false

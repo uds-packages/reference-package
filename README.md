@@ -11,12 +11,13 @@ Inside the `.github` directory, you will find a fully runnable Go-based web appl
 
 This repository should aim to provide functional examples of the following:
 
-* **Bundle Integration:** Pulling dependencies into a UDS Bundle.
-* **Authentication:** Keycloak SSO configuration.
-* **Observability:** Prometheus service monitoring integration.
-* **Configuration:** Helm overrides and UDS Config chart templates.
-* **Networking & Security:** Istio Virtual Service and Network Policy creation.
-* **Testing:** Playwright UI testing.
+* **Bundle Integration:** Pulling dependencies into a [UDS Bundle](bundle/uds-bundle.yaml).
+* **Authentication:** [Keycloak SSO](docs/configuration.md#single-sign-on) configuration.
+* **Observability:** [Prometheus](docs/configuration.md#monitoring) service monitoring integration.
+* **Configuration:** [Helm overrides](docs/configuration.md#bundle-overrides) and [UDS Config chart templates](chart/templates/).
+* **Networking & Security:** [Istio Virtual Service and Network Policy](docs/networking-patterns.md) creation.
+* **Certificate Trust:** [UDS Core trust bundle](docs/configuration.md#trust-bundle) wiring for custom CAs, including private or DoD PKI.
+* **Testing:** [Playwright](tests/reference-package.test.ts) UI testing.
 
 
 ## Prerequisites

@@ -37,3 +37,8 @@ sso:
 
 monitoring:
   enabled: false
+
+# Additional pod volumes, container mounts, and environment variables.
+extraVolumes: []
+extraVolumeMounts: []
+extraEnv: []

@@ -29,6 +29,14 @@ overrides:
 
 ```
 
+## Trust bundle
+
+The [UDS `Package` template](../chart/templates/uds-package.yaml) configures the `uds-trust-bundle` ConfigMap and enables pod reloads for the application when its certificate data changes.
+
+The application chart exposes generic `extraVolumes`, `extraVolumeMounts`, and `extraEnv` values with empty defaults. The UDS package's [common values](../values/common-values.yaml) use these extensions to mount the ConfigMap read-only at `/etc/uds/certs` and set `SSL_CERT_DIR` to `/etc/ssl/certs:/etc/uds/certs`. Go uses these directories alongside the system CA bundle included in the image. The mount is optional because Core does not create the ConfigMap when no CA bundle is configured; certificate verification will then still use the image's system CAs.
+
+It is important to note that TLS and certificate validation should be setup correctly for external services that need them (i.e. set `postgres.connectionOptions` to `?sslmode=verify-full` and `objectStorage.useSSL` to `true`).  See Manage trust bundles (https://docs.defenseunicorns.com/core/how-to-guides/networking/manage-trust-bundles/) for additional UDS Core Trust Bundle configuration guidance.
+
 ## UDS Config Chart Values
 
 ### PostgreSQL Database
