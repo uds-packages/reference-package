@@ -7,6 +7,14 @@ metadata:
   name: reference-package
   namespace: {{ .Release.Namespace }}
 spec:
+  caBundle:
+    configMap:
+      name: uds-trust-bundle
+      key: ca-bundle.pem
+      labels:
+        uds.dev/pod-reload: "true"
+      annotations:
+        uds.dev/pod-reload-selector: "app=reference-package"
   {{- if .Values.sso.enabled }}
   sso:
     - name: Reference Package Login

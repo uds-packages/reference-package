@@ -17,6 +17,10 @@ spec:
     spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: reference-package
           securityContext:
@@ -25,6 +29,10 @@ spec:
           imagePullPolicy: "{{ .Values.image.pullPolicy }}"
           ports:
             - containerPort: 8080
+          {{- with .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             - name: DB_LOG_LEVEL
               value: {{ .Values.logging.dbLevel | default "info" | quote }}
@@ -55,6 +63,9 @@ spec:
               value: {{ .Values.monitoring.enabled | quote }}
             - name: SSO_GUEST_LOGIN_ENABLED
               value: {{ .Values.sso.guestLoginEnabled | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if .Values.sso.enabled }}
           envFrom:
             - secretRef:
