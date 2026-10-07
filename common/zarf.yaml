@@ -27,7 +27,9 @@ components:
           - cmd: |
               kubectl                    # fail
               uds zarf tools kubectl     # fail
+              ./uds zarf tools kubectl   # fail
               helm                       # fail
               yq                         # fail
-              zarf tools kubectl         # pass
+              zarf tools kubectl         # fail
               ./zarf tools kubectl       # pass
+              ./zarf tools helm          # pass
