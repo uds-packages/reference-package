@@ -31,5 +31,7 @@ components:
               helm                       # fail
               yq                         # fail
               zarf tools kubectl         # fail
+              ../zarf tools yq           # fail
               ./zarf tools kubectl       # pass
               ./zarf tools helm          # pass
+              echo "kubectl get pods"    # pass
