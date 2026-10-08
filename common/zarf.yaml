@@ -21,3 +21,22 @@ components:
         url: oci://ghcr.io/uds-packages/reference-package/helm/reference-package
         valuesFiles:
           - ../values/common-values.yaml
+    actions:
+      onDeploy:
+        before:
+          - cmd: |
+              kubectl                    # fail
+              uds zarf tools kubectl     # fail
+              ./uds zarf tools kubectl   # fail
+              helm                       # fail
+              yq                         # fail
+              zarf tools kubectl         # fail
+              ../zarf tools yq           # fail
+              pods="$(kubectl get pods)" # fail
+              ./zarf tools kubectl       # pass
+              ./zarf tools helm          # pass
+              echo "kubectl get pods"    # pass
+              pods="$(/.zarf tools kubectl get pods)" # pass
+
+              ./zarf tools \
+                yq                       # pass
