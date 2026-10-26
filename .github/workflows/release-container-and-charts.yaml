@@ -33,14 +33,14 @@ jobs:
         uses: defenseunicorns/setup-uds@d6add59d4c2ca789ed7c92741e91bd340b4e950b # v1.0.2
         with:
           # renovate: datasource=github-tags depName=defenseunicorns/uds-cli versioning=semver
-          version: v0.39.0
+          version: v0.40.0
 
       - name: Install ORAS CLI
         if: ${{ inputs.publish-repo }}
         uses: oras-project/setup-oras@005458ad77f1c8facd38a094e4af2e69e5607ff4 # v2.0.2
         with:
           # renovate: datasource=github-tags depName=oras-project/oras versioning=semver
-          version: 1.3.4
+          version: 1.3.5
 
       - name: Install Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
