@@ -1,32 +1,18 @@
 # Configuration
 
-The Reference Package is configured using the [application's Helm chart](https://github.com/uds-packages/reference-package/tree/main/.github/container-and-chart/helm/chart), alongside the `uds-reference-package-config` UDS config chart. Root [Zarf values](../values.yaml) provide defaults for both charts. Bundle overrides take precedence where they set the same chart values.
+The Reference Package is configured using the [application's Helm chart](https://github.com/uds-packages/reference-package/tree/main/.github/container-and-chart/helm/chart), alongside the `uds-reference-package-config` UDS config chart. Root [Zarf values](../values.yaml) provide defaults for both charts. The test bundle supplies additional values through [`values_files`](../bundle/bundle.uds.hcl).
 
-## Bundle Overrides
+## Bundle Values
 
-Use bundle overrides to configure the Database, SSO, Monitoring, and Object Storage.
+Use package values files to configure the test bundle's database and object storage settings. The reference package maps the values root into both charts. SSO and monitoring defaults remain in [`values.yaml`](../values.yaml) and can be overridden in the same package values file.
 
 ```yaml
-# bundle/uds-bundle.yaml
-overrides:
-  reference-package:
-    reference-package:
-      values:
-        - path: database
-          value:
-            secretName: "reference-package-postgres"
-            secretKey: "PASSWORD"
-        - path: sso
-          value:
-            enabled: true
-            secretName: reference-package-sso
-            # Set to false to disable the /login-guest path when SSO is enabled.
-            # Defaults to true, which preserves the demo behavior.
-            guestLoginEnabled: true
-        - path: monitoring
-          value:
-            enabled: true
-
+# bundle/values/reference-package.yaml
+database:
+  secretName: "reference-package-postgres"
+  secretKey: "PASSWORD"
+objectStorage:
+  enabled: true
 ```
 
 ## Trust bundle
@@ -69,36 +55,27 @@ postgres:
 
 #### Secrets creation
 
-The Zalando Postgres Operator uses a `{namespace}.{username}` format for the `users` key in its config. That namespace prefix determines **which namespace** the operator places the credentials secret in. Given the following bundle override on the `postgres-operator` package:
+The Zalando Postgres Operator uses a `{namespace}.{username}` format for the `users` key in its config. That namespace prefix determines **which namespace** the operator places the credentials secret in. The test bundle supplies these package values to `postgres-operator`:
 
 ```yaml
-# bundle/uds-bundle.yaml
-overrides:
-  postgres-operator:
-    uds-postgres-config:
-      values:
-        - path: postgresql
-          value:
-            users:
-              reference-package.reference-package: []
-            databases:
-              reference: reference-package.reference-package
+# bundle/values/postgres-operator.yaml
+uds-postgres-config:
+  postgresql:
+    users:
+      reference-package.reference-package: []
+    databases:
+      reference: reference-package.reference-package
 ```
 
 The operator creates a secret named `reference-package.reference-package.pg-cluster.credentials.postgresql.acid.zalan.do` in the `reference-package` namespace.
 
-`chart/templates/postgres-secret.yaml` then looks up that secret, extracts the credentials, and writes a `postgres://` connection string into `reference-package-postgres` in the same namespace. The application chart consumes it via the `database` override:
+`chart/templates/postgres-secret.yaml` then looks up that secret, extracts the credentials, and writes a `postgres://` connection string into `reference-package-postgres` in the same namespace. The application chart consumes it through its `database` values:
 
 ```yaml
-# bundle/uds-bundle.yaml
-overrides:
-  reference-package:
-    reference-package:
-      values:
-        - path: database
-          value:
-            secretName: "reference-package-postgres"  # must match the secret created by the config chart
-            secretKey: "PASSWORD"
+# bundle/values/reference-package.yaml
+database:
+  secretName: "reference-package-postgres" # must match the secret created by the config chart
+  secretKey: "PASSWORD"
 ```
 
 For external databases (non-operator), set `postgres.password` directly and provide the `host`, `dbName`, and connection details for your database service.
@@ -143,21 +120,11 @@ objectStorage:
   port: 9000
 ```
 
-The application chart carries a matching `objectStorage` block: its `endpoint`, `bucket`, and `useSSL` are the values the container connects with, and both charts default to the in-cluster MinIO service. Enable object storage on both charts through the bundle:
+The application chart carries a matching `objectStorage` block: its `endpoint`, `bucket`, and `useSSL` are the values the container connects with, and both charts default to the in-cluster MinIO service. Enable object storage on both charts through the package values file:
 
-```yaml title="bundle/uds-bundle.yaml"
-overrides:
-  reference-package:
-    # Config chart: renders the credentials secret and opens egress
-    uds-reference-package-config:
-      values:
-        - path: objectStorage.enabled
-          value: true
-    # Application chart: connects to the backend and reads the credentials
-    reference-package:
-      values:
-        - path: objectStorage.enabled
-          value: true
+```yaml title="bundle/values/reference-package.yaml"
+objectStorage:
+  enabled: true
 ```
 
 For external object storage (non-operator), set `objectStorage.internal` to `false` on the config chart and set the `endpoint`, `bucket`, and credentials for your provider on the application chart. Provide credentials through `objectStorage.accessKey` and `objectStorage.secretKey`, or point `objectStorage.existingSecret` at a secret you manage.
@@ -178,7 +145,7 @@ The UDS Operator reads the SSO configuration from the Package CR (`chart/templat
 - `KEYCLOAK_CLIENT_SECRET`
 - `APP_CALLBACK_URL`
 
-The application mounts the entire secret as environment variables. The `sso.secretName` value in the bundle override must match the name declared in the Package CR — both default to `reference-package-sso`.
+The application mounts the entire secret as environment variables. The `sso.secretName` value in the package values must match the name declared in the Package CR — both default to `reference-package-sso`.
 
 #### Disabling guest login
 

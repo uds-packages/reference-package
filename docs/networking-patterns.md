@@ -114,13 +114,9 @@ allow:
 Bundle deployers toggle this via the config chart:
 
 ```yaml
-# bundle/uds-bundle.yaml
-overrides:
-  reference-package:
-    uds-reference-package-config:
-      values:
-        - path: postgres.internal
-          value: false
+# bundle/values/reference-package.yaml
+postgres:
+  internal: false
 ```
 
 > [!IMPORTANT]
@@ -131,19 +127,14 @@ overrides:
 Packages expose an `additionalNetworkAllow` key so deployers can inject rules for integrations not known at package-authoring time:
 
 ```yaml
-# bundle/uds-bundle.yaml
-overrides:
-  reference-package:
-    uds-reference-package-config:
-      values:
-        - path: additionalNetworkAllow
-          value:
-            - direction: Egress
-              selector:
-                app: reference-package
-              remoteNamespace: my-service
-              remoteSelector:
-                app: my-service
-              port: 8080
-              description: "Custom integration"
+# bundle/values/reference-package.yaml
+additionalNetworkAllow:
+  - direction: Egress
+    selector:
+      app: reference-package
+    remoteNamespace: my-service
+    remoteSelector:
+      app: my-service
+    port: 8080
+    description: "Custom integration"
 ```
