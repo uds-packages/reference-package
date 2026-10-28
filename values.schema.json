@@ -1,0 +1,282 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "additionalNetworkAllow": {
+      "type": "array"
+    },
+    "database": {
+      "properties": {
+        "secretKey": {
+          "type": "string"
+        },
+        "secretName": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "domain": {
+      "description": "Domain used for the application and SSO callback URLs.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "extraEnv": {
+      "items": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "extraVolumeMounts": {
+      "items": {
+        "properties": {
+          "mountPath": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "readOnly": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "extraVolumes": {
+      "items": {
+        "properties": {
+          "configMap": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "optional": {
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "logging": {
+      "properties": {
+        "dbLevel": {
+          "enum": ["error", "warn", "info", "debug"],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "monitoring": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "objectStorage": {
+      "properties": {
+        "accessKey": {
+          "type": "string"
+        },
+        "accessKeyKey": {
+          "type": "string"
+        },
+        "bucket": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "existingSecret": {
+          "properties": {
+            "accessKeyKey": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "secretKeyKey": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "internal": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "secretKey": {
+          "type": "string"
+        },
+        "secretKeyKey": {
+          "type": "string"
+        },
+        "secretName": {
+          "type": "string"
+        },
+        "selector": {
+          "properties": {
+            "v1.min.io/tenant": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "useSSL": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "podSecurityContext": {
+      "properties": {
+        "fsGroup": {
+          "type": "integer"
+        },
+        "runAsGroup": {
+          "type": "integer"
+        },
+        "runAsUser": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "postgres": {
+      "properties": {
+        "connectionOptions": {
+          "type": "string"
+        },
+        "dbName": {
+          "type": "string"
+        },
+        "existingSecret": {
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "passwordKey": {
+              "type": "string"
+            },
+            "usernameKey": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "host": {
+          "type": "string"
+        },
+        "internal": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "selector": {
+          "properties": {
+            "cluster-name": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "securityContext": {
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "properties": {
+            "drop": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "readOnlyRootFilesystem": {
+          "type": "boolean"
+        },
+        "runAsNonRoot": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "service": {
+      "properties": {
+        "port": {
+          "type": "number"
+        },
+        "targetPort": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "sso": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "guestLoginEnabled": {
+          "type": "boolean"
+        },
+        "secretName": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "required": ["domain", "sso", "postgres", "objectStorage"],
+  "type": "object"
+}
