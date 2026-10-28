@@ -4,16 +4,34 @@ The Reference Package is configured using the [application's Helm chart](https:/
 
 ## Bundle Values
 
-Use package values files to configure the test bundle's database and object storage settings. The reference package maps the values root into both charts. SSO and monitoring defaults remain in [`values.yaml`](../values.yaml) and can be overridden in the same package values file.
+The test bundle reads deploy-time variables in its [package values file](../bundle/values/reference-package.yaml). Its [embedded defaults](../bundle/defaults.uds.hcl) preserve the current domain, SSO, monitoring, and object storage behavior. The reference package maps the values root into both charts, so these settings reach both charts.
 
 ```yaml
 # bundle/values/reference-package.yaml
+domain: "{{ .vars.domain }}"
+sso:
+  enabled: {{ .vars.sso_enabled }}
+monitoring:
+  enabled: {{ .vars.monitoring_enabled }}
 database:
   secretName: "reference-package-postgres"
   secretKey: "PASSWORD"
 objectStorage:
-  enabled: true
+  enabled: {{ .vars.object_storage_enabled }}
 ```
+
+Set any of these variables in [`bundle/config.uds.hcl`](../bundle/config.uds.hcl) to override the embedded defaults for a deployment. For example:
+
+```hcl
+variables = {
+  domain                 = "example.com"
+  object_storage_enabled = false
+}
+```
+
+Keep boolean templates unquoted so their rendered YAML values remain booleans. The database secret name and key remain fixed in the test bundle.
+
+Top-level scalar variables are also passed to every Zarf package as uppercase variables. The MinIO Operator package declares `DOMAIN`, so overriding `domain` affects that package too. Setting `object_storage_enabled` to `false` disables the reference application's storage integration but does not remove the MinIO Operator package from the bundle. The repository's test tasks expect the embedded defaults.
 
 ## Trust bundle
 
