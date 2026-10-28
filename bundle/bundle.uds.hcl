@@ -14,11 +14,21 @@ metadata {
 package "postgres-operator" {
   source       = "oci://ghcr.io/uds-packages/postgres-operator:2.0.3-uds.1-upstream"
   values_files = ["values/postgres-operator.yaml"]
+
+  # Remove this bypass when Postgres Operator publishes signed packages.
+  signature_verification {
+    verify = false
+  }
 }
 
 package "minio-operator" {
   source       = "oci://ghcr.io/uds-packages/minio-operator:7.1.1-uds.27-upstream"
   values_files = ["values/minio-operator.yaml"]
+
+  # Remove this bypass when MinIO Operator publishes signed packages.
+  signature_verification {
+    verify = false
+  }
 }
 
 package "reference-package" {
