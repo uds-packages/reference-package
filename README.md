@@ -11,10 +11,10 @@ Inside the `.github` directory, you will find a fully runnable Go-based web appl
 
 This repository should aim to provide functional examples of the following:
 
-* **Bundle Integration:** Pulling dependencies into a [UDS Bundle](bundle/uds-bundle.yaml).
+* **Bundle Integration:** Pulling dependencies into a [UDS Bundle](bundle/bundle.uds.hcl).
 * **Authentication:** [Keycloak SSO](docs/configuration.md#single-sign-on) configuration.
 * **Observability:** [Prometheus](docs/configuration.md#monitoring) service monitoring integration.
-* **Configuration:** [Helm overrides](docs/configuration.md#bundle-overrides) and [UDS Config chart templates](chart/templates/).
+* **Configuration:** [Package values](docs/configuration.md#bundle-values) and [UDS Config chart templates](chart/templates/).
 * **Networking & Security:** [Istio Virtual Service and Network Policy](docs/networking-patterns.md) creation.
 * **Certificate Trust:** [UDS Core trust bundle](docs/configuration.md#trust-bundle) wiring for custom CAs, including private or DoD PKI.
 * **Testing:** [Playwright](tests/reference-package.test.ts) UI testing.
@@ -24,7 +24,7 @@ This repository should aim to provide functional examples of the following:
 
 This reference package is designed to be deployed on top of [UDS Core](https://github.com/defenseunicorns/uds-core). Please ensure the following dependencies are configured prior to deployment:
 
-* **Postgres Database:** The Go application requires a Postgres instance. We recommend bringing this into your `bundle/uds-bundle` by using the `postgres-operator` UDS package.
+* **Postgres Database:** The Go application requires a Postgres instance. The test bundle includes the `postgres-operator` UDS package.
 * **Monitoring:** To successfully demonstrate the monitoring features, you will need to install the `k3d-core-demo` bundle rather than the `k3d-core-slim-dev` bundle.
 
 > [!TIP]

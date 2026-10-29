@@ -4,6 +4,7 @@ yaml-files:
 
 ignore:
   - '**/chart/templates**'
+  - 'bundle/values/reference-package.yaml'
 
 rules:
   anchors: enable
