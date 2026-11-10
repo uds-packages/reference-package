@@ -60,8 +60,9 @@ Once the app is deployed, it can be accessed in the web browser at https://refer
 The released packages can be found in [ghcr](https://github.com/uds-packages/reference-package/pkgs/container/reference-package).
 
 ### Verify a Package
+Packages are signed using [Zarf's Keyless Signing](https://docs.zarf.dev/ref/package-signing/#using-keyless-signing).
 
-Packages are keylessly signed from `0.3.0-uds.2` onwards.
+Packages are signed from `0.3.0-uds.2` onwards.
 
 To verify a package, follow the below example:
 
@@ -73,10 +74,6 @@ uds zarf package verify "oci://ghcr.io/uds-packages/reference-package:0.3.0-uds.
 
 For a `unicorn` package, use `oci://ghcr.io/uds-packages/private/reference-package:<VERSION>-unicorn`
 as the package source.
-
-See [UDS Common's signed package release documentation](https://github.com/defenseunicorns/uds-common/blob/v1.34.0/docs/development/common-workflows.md#signed-package-releases)
-for signing details and bundle verification.
-
 
 ## Contributing
 
