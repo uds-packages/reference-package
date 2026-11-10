@@ -59,6 +59,24 @@ Once the app is deployed, it can be accessed in the web browser at https://refer
 
 The released packages can be found in [ghcr](https://github.com/uds-packages/reference-package/pkgs/container/reference-package).
 
+### Verify a Package
+
+Packages are keylessly signed from `0.3.0-uds.2` onwards.
+
+To verify a package, follow the below example:
+
+```bash
+uds zarf package verify "oci://ghcr.io/uds-packages/reference-package:0.3.0-uds.2-upstream" \
+  --certificate-identity "https://github.com/uds-packages/reference-package/.github/workflows/release.yaml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+For a `unicorn` package, use `oci://ghcr.io/uds-packages/private/reference-package:<VERSION>-unicorn`
+as the package source.
+
+See [UDS Common's signed package release documentation](https://github.com/defenseunicorns/uds-common/blob/v1.34.0/docs/development/common-workflows.md#signed-package-releases)
+for signing details and bundle verification.
+
 
 ## Contributing
 
