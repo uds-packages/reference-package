@@ -2,6 +2,14 @@
 
 The Reference Package is configured using the [application's Helm chart](https://github.com/uds-packages/reference-package/tree/main/.github/container-and-chart/helm/chart), alongside the `uds-reference-package-config` UDS config chart. Root [Zarf values](../values.yaml) provide defaults for both charts. The test bundle supplies additional values through [`values_files`](../bundle/bundle.uds.hcl).
 
+## Table of Contents
+
+- [Package Signature Verification](#package-signature-verification)
+- [Bundle Values](#bundle-values)
+- [Trust bundle](#trust-bundle)
+- [UDS Config Chart Values](#uds-config-chart-values)
+- [Package Custom Resources (CR)](#package-custom-resources-cr)
+
 ## Package Signature Verification
 
 See [Verify a Package](../README.md#verify-a-package) in the README for the first signed releases and package source paths. Replace `<version>` and `<flavor>` with your package version and flavor. For signed releases, configure the settings below to avoid signature verification failures during bundle creation.
