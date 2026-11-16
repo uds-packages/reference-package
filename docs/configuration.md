@@ -2,6 +2,45 @@
 
 The Reference Package is configured using the [application's Helm chart](https://github.com/uds-packages/reference-package/tree/main/.github/container-and-chart/helm/chart), alongside the `uds-reference-package-config` UDS config chart. Root [Zarf values](../values.yaml) provide defaults for both charts. The test bundle supplies additional values through [`values_files`](../bundle/bundle.uds.hcl).
 
+## Table of Contents
+
+- [Package Signature Verification](#package-signature-verification)
+- [Bundle Values](#bundle-values)
+- [Trust bundle](#trust-bundle)
+- [UDS Config Chart Values](#uds-config-chart-values)
+- [Package Custom Resources (CR)](#package-custom-resources-cr)
+
+## Package Signature Verification
+
+See [Verify a Package](../README.md#verify-a-package) in the README for the first signed releases and package source paths. Replace `<version>` and `<flavor>` with your package version and flavor. For signed releases, configure the settings below to avoid signature verification failures during bundle creation.
+
+### CLI Next — `bundle.uds.hcl`
+
+```hcl
+package "reference-package" {
+  source = "oci://ghcr.io/uds-packages/reference-package:<version>-<flavor>"
+
+  signature_verification {
+    keyless {
+      certificate_identity    = "https://github.com/uds-packages/reference-package/.github/workflows/release.yaml@refs/heads/main"
+      certificate_oidc_issuer = "https://token.actions.githubusercontent.com"
+    }
+  }
+}
+```
+
+### Classic — `uds-bundle.yaml`
+
+```yaml
+packages:
+  - name: reference-package
+    repository: ghcr.io/uds-packages/reference-package
+    ref: <version>-<flavor>
+    keylessVerification:
+      certificateIdentity: https://github.com/uds-packages/reference-package/.github/workflows/release.yaml@refs/heads/main
+      certificateOIDCIssuer: https://token.actions.githubusercontent.com
+```
+
 ## Bundle Values
 
 The test bundle reads deploy-time variables in its [package values file](../bundle/values/reference-package.yaml). Its [embedded defaults](../bundle/defaults.uds.hcl) preserve the current domain, SSO, monitoring, and object storage behavior. The reference package maps the values root into both charts, so these settings reach both charts.
