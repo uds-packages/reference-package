@@ -12,22 +12,26 @@ metadata {
 }
 
 package "postgres-operator" {
-  source       = "oci://ghcr.io/uds-packages/postgres-operator:2.0.3-uds.1-upstream"
+  source       = "oci://ghcr.io/uds-packages/postgres-operator:2.0.3-uds.6-upstream"
   values_files = ["values/postgres-operator.yaml"]
 
-  # Remove this bypass when Postgres Operator publishes signed packages.
   signature_verification {
-    verify = false
+    keyless {
+      certificate_identity    = "https://github.com/uds-packages/postgres-operator/.github/workflows/release.yaml@refs/heads/main"
+      certificate_oidc_issuer = "https://token.actions.githubusercontent.com"
+    }
   }
 }
 
 package "minio-operator" {
-  source       = "oci://ghcr.io/uds-packages/minio-operator:7.1.1-uds.27-upstream"
+  source       = "oci://ghcr.io/uds-packages/minio-operator:7.1.1-uds.29-upstream"
   values_files = ["values/minio-operator.yaml"]
 
-  # Remove this bypass when MinIO Operator publishes signed packages.
   signature_verification {
-    verify = false
+    keyless {
+      certificate_identity    = "https://github.com/uds-packages/minio-operator/.github/workflows/release.yaml@refs/heads/main"
+      certificate_oidc_issuer = "https://token.actions.githubusercontent.com"
+    }
   }
 }
 
